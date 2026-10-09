@@ -1,0 +1,13 @@
+{
+  "name": "arlequim-painel-vistorias",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Painel de Vistorias Arlequim: estático, roda no navegador, sem backend e sem credenciais.",
+  "scripts": {
+    "test": "node --test tests/painel.test.js",
+    "build": "node scripts/build-single.js",
+    "amostra": "node scripts/gerar-amostra.js amostra",
+    "serve": "node scripts/serve.js"
+  },
+  "engines": { "node": ">=18" }
+}
