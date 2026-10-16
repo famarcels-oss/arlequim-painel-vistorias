@@ -1,4 +1,6 @@
-# Plano de ação e desenvolvimento: painel de rede em versão gestão
+# Visão de gestão: como foi desenhada (registro histórico)
+
+> Registro de como a visão de gestão foi construída, da 1.1.0 à 1.3.1. Os nomes de faixa da época (Pronta, Bloqueada) mudaram depois: hoje são Apta e Severas restrições. As versões seguintes estão no `CHANGELOG.md`.
 
 Base: mockup "Painel de Vistorias, versão gestão" (tela de todos os projetos, projeto com abas, ficha da escola com Detalhar).
 Código de partida: painel 1.0.0, 20 testes verdes.
@@ -147,36 +149,3 @@ A aba Causas virou Melhorias: soma por tipo as sugestões do motor do app (regra
 ## Teste de carga da 1.3.0
 Bloco "Teste de carga" no fim da aba "Pontos Wi-Fi" do detalhe da vistoria (1.3.1; na 1.3.0 era um card da ficha), mostrando só o teste da vistoria exibida (a mais recente por padrão). Sem teste: "Não registrado". Informativo: não entra na nota nem na faixa, e o resultado (Bom, Regular, Ruim) vem pronto do app. Nada entra na visão executiva. O Plano de ação saiu da ficha.
 Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a função `lerTesteCarga` e a chave `testeCarga` no objeto da vistoria. É só leitura do campo, sem tocar em nenhuma regra, e `docs/protegidos.sha256` foi atualizado na mesma entrega. As outras vistorias, sem o campo, ficam com `testeCarga: null`.
-
-## 1.4.0
-- "Bloqueada" virou "Severas restrições" em todas as telas de gestão e no detalhe clássico.
-- Escola com Wi-Fi e rede física medidos, aprovada no geral pelo app e com uma das duas partes em ressalva aparece como "Apta, com ressalva": pílula com ponto meio verde meio âmbar e a nota com o mesmo degradê. Nada muda na contagem: ela segue contando como apta, porque o veredito do app é aprovado.
-- `docs/REGRAS-E-TESTES.md`: regras do projeto e bateria obrigatória a cada modificação.
-- Testes novos de anexos: todo espectro e toda foto listada no `vistoria.json` existe no zip e aparece na tela, inclusive com nome fora do padrão.
-
-## 1.5.0
-- "Apta com ressalva" virou categoria própria da Prontidão para VDI, com cor em degradê, filtro e contagem separada das aptas puras. O total de aptas não muda: `p = pp + pr`.
-- O mesmo conceito visual (pílula com ponto meio verde meio âmbar) aparece em toda tela onde a escola apta com ressalva é mostrada: visão executiva, lista de escolas, melhorias, prioridade e ficha.
-- Ficha: saíram "Responsável" e "Próxima revistoria" do card Situação.
-- Projeto virou repositório Git, com tag por entrega. A versão sobe 1 a cada entrega a partir da 1.5.0.
-
-## 1.5.1
-- Endereço fixo do painel: `Meus Projetos\Painel de Vistorias (atual)\painel-vistorias.html`, regravado a cada entrega. Abrir pelo favorito e dar F5. Nenhuma tela mudou.
-
-## 1.5.2
-- Escolas: os 12 botões de filtro e ordenação viraram 3 seletores (Situação, Tipo de rede, Ordenar por) ao lado do título, com os mesmos textos e contagens. Continua abrindo pela vistoria mais recente.
-
-## 1.5.3
-- Escolas e Melhorias: escola apta com ressalva aparecia com a pílula "Apta" comum. Agora mostra a pílula em degradê, como as demais telas.
-- Teste novo: a mesma escola tem a mesma classificação em todas as telas.
-
-## 1.5.4
-- Limpeza para produção, sem mudança na tela: variáveis e parâmetro sem uso, 24 regras de CSS órfãs, `.gitignore` bloqueando `dist/`, `dados/` e pacotes reais (`.zip`, `.pdf`, `.csv` fora da amostra). O `dist/` saiu do Git.
-- Nomes das faixas num dicionário único (`FAIXAS` em `gestao.js`). Todas as telas leem dali.
-- Testes novos: código sem sobra de depuração, nenhuma classe CSS órfã, nomes só no dicionário, renomear muda o painel inteiro.
-- Conferido: leitura do legado idêntica à 1.5.3 byte a byte, e as telas iguais pixel a pixel.
-
-## 1.5.5
-- Pronto para o Vercel, sem publicar: cabeçalhos `Permissions-Policy` e `Cross-Origin-Opener-Policy` no `vercel.json`, licença da fonte Manrope (`public/assets/vendor/MANROPE-OFL.txt`) e roteiro em `docs/publicar-no-vercel.md`.
-- Testes novos de publicação: só arquivos do próprio site, cabeçalhos de segurança e nenhum envio de dado.
-- Conferido com os cabeçalhos do Vercel e dado real: telas, ficha, PDF e exportação, console limpo. Nenhuma tela mudou.

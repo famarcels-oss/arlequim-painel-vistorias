@@ -39,7 +39,7 @@
   function q(k) { return 'q-' + (k || 'n'); }
 
   // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
-  var VERSAO = '1.5.5';
+  var VERSAO = '1.5.6';
   function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
 
   // Nome da faixa: vem do dicionário de gestao.js (carregado depois deste arquivo, por isso lido na hora)

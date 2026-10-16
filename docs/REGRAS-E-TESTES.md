@@ -45,6 +45,19 @@ Ficam fora do versionamento (`.gitignore`): `node_modules/`, `dist/` e os `.zip`
 
 Para voltar atrás: `git log --oneline` acha a entrega, `git diff vX.Y.Z` mostra o que mudou desde ela, `git checkout vX.Y.Z` recupera a versão inteira.
 
+**Como sair uma versão.** O ambiente onde o código é feito não consegue enviar ao GitHub, então a entrega chega pronta num zip e o envio sai do computador do Fábio:
+
+1. Pedido em uma linha, plano e aprovação. Tela nova: mockup aprovado antes.
+2. Código, bateria da seção 4, versão subida, `CHANGELOG.md`, commit e tag.
+3. Entrega em `OneDrive - ARLEQUIM\Meus Projetos`: `painel-vistorias-vX.Y.Z.html`, `arlequim-painel-vistorias-vX.Y.Z.zip` e `repo-painel-vX.Y.Z-para-push.zip`. O endereço fixo é regravado.
+4. Envio ao GitHub, no PowerShell, **numa linha só** (colar em várias linhas faz a primeira se perder):
+
+```powershell
+cd "$env:USERPROFILE\OneDrive - ARLEQUIM\Meus Projetos"; Expand-Archive ".\repo-painel-vX.Y.Z-para-push.zip" -DestinationPath ".\push-X.Y.Z" -Force; cd ".\push-X.Y.Z\arlequim-painel-vistorias"; git log --oneline -1; git push origin main --tags
+```
+
+5. O `git log` mostra o commit da versão antes do push. Depois, conferir no GitHub que a tag `vX.Y.Z` chegou.
+
 **Endereço fixo.** O painel em uso fica sempre em um único arquivo, no mesmo lugar:
 `OneDrive - ARLEQUIM\Meus Projetos\Painel de Vistorias (atual)\painel-vistorias.html`.
 A cada entrega, o `dist/painel-vistorias.html` novo é gravado por cima desse arquivo. O Fábio abre pelo favorito do navegador e dá F5; o número no canto da tela confirma a versão. Os `.zip` e `.html` versionados continuam sendo gerados para histórico.
@@ -140,7 +153,8 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - [ ] Conferido com dado real, incluindo espectro, fotos e PDF.
 - [ ] Versão subiu 1 em `package.json` e em `VERSAO` no `views.js`.
 - [ ] Commit e tag `vX.Y.Z` feitos.
-- [ ] `docs/plano-refatoracao-painel-gestao.md` com a linha do que mudou.
+- [ ] `CHANGELOG.md` com a linha do que mudou.
 - [ ] Painel gravado no endereço fixo; aberto, F5, e a versão no canto subiu.
 - [ ] Entrega: o `.html` único e o `.zip` do projeto.
-- [ ] Mexeu em `vercel.json` ou `index.html`: `npm run serve`, abrir `http://localhost:8080` com dado real e conferir console limpo. Roteiro em `docs/publicar-no-vercel.md`.
+- [ ] Mexeu em `vercel.json` ou `index.html`: `npm run serve`, abrir `http://localhost:8080` com dado real e conferir console limpo. Roteiro em `docs/publicar.md`.
+- [ ] Mudou tela: imagens de `docs/telas/` refeitas com os dados fictícios da `amostra/`, nunca com escola real.

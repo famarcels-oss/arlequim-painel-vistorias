@@ -1,20 +1,22 @@
-# Publicar no Vercel
+# Publicar na web
 
-O painel está pronto para ir ao ar. Publicar é decisão do Fábio: hoje ele roda local, pelo endereço fixo no OneDrive.
+O painel está pronto para ir ao ar. Publicar é decisão do dono do produto: hoje ele roda local, pelo endereço fixo no OneDrive.
 
 ## O que vai para o ar
 
 Só a ferramenta vazia: HTML, CSS, JavaScript e a fonte. Nenhuma vistoria, foto ou PDF.
 Quem abre o site carrega os próprios pacotes, e eles ficam só no navegador dessa pessoa. O painel não tem servidor, banco, login nem chamada de rede (há teste que garante isso).
 
-## Passo a passo
+## Passo a passo (hospedagem já configurada: Vercel)
 
 1. **Importar.** No Vercel: Add New > Project > importar `famarcels-oss/arlequim-painel-vistorias`.
 2. **Configurar.** Framework Preset: **Other**. Não mexer em Build, Output nem Install: o `vercel.json` já diz tudo (serve a pasta `public/`, sem build). Sem variáveis de ambiente.
 3. **Proteger antes de divulgar o link.** Settings > Deployment Protection: ligar **Vercel Authentication** (só quem tem conta no time entra) ou **Password Protection** (senha única). O site vazio não tem dado, mas o HTML exportado que alguém gerar a partir dele terá.
 4. **Deploy.** Cada `git push` na `main` publica sozinho a versão nova. Conferir o número no canto da tela.
 
-## O que já vem configurado (`vercel.json`)
+## O que já vem configurado
+
+Os cabeçalhos ficam no `vercel.json` e valem para todas as páginas.
 
 | Cabeçalho | Para quê |
 |---|---|
@@ -24,7 +26,7 @@ Quem abre o site carrega os próprios pacotes, e eles ficam só no navegador des
 | Permissions-Policy | Câmera, microfone, localização, pagamento e USB desligados. |
 | Cross-Origin-Opener-Policy, X-Frame-Options, Referrer-Policy, X-Content-Type-Options | Isolamento da aba e nada de endereço vazando para outro site. |
 
-Testar igual ao Vercel, no próprio computador: `npm run serve` e abrir `http://localhost:8080`. O servidor local usa os mesmos cabeçalhos.
+Testar igual ao site no ar, no próprio computador: `npm run serve` e abrir `http://localhost:8080`. O servidor local usa os mesmos cabeçalhos.
 
 ## O que muda em relação ao uso local
 
