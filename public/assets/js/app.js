@@ -602,6 +602,10 @@
     if (ev.target && ev.target.id === 'busca') { S.busca = ev.target.value; render(); }
   });
   document.addEventListener('change', function (ev) {
+    var sel = ev.target && ev.target.getAttribute && ev.target.getAttribute('data-sel');
+    if (sel === 'gFiltro' || sel === 'gTipo' || sel === 'gOrdem') {
+      S[sel] = ev.target.value; if (sel !== 'gOrdem') S.gVer.escolas = false; render(); return;
+    }
     if (ev.target && (ev.target.id === 'arq' || ev.target.id === 'pasta')) {
       var fs = Array.prototype.slice.call(ev.target.files || []);
       ev.target.value = '';

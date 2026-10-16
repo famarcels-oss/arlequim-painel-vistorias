@@ -279,6 +279,13 @@
 
   function chip(act, arg, on, txt) { return '<button type="button" class="gv-chip' + (on ? ' on' : '') + '" data-act="' + act + '" data-arg="' + arg + '" aria-pressed="' + on + '">' + txt + '</button>'; }
 
+  // seletor do cabeçalho da lista de escolas (troca o estado pelo evento change)
+  function seletor(chave, rotulo, atual, ops) {
+    return '<label class="gv-sel"><span>' + rotulo + '</span><select data-sel="' + chave + '">' + ops.map(function (o) {
+      return '<option value="' + o[0] + '"' + (o[0] === atual ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+    }).join('') + '</select></label>';
+  }
+
   // barra clicável do gráfico: filtra a lista abaixo (clicar de novo limpa)
   function gbar(act, arg, ativo, algumAtivo, nome, n, total, cor, tip) {
     var larg = total ? (n / total * 100) : 0;
@@ -305,13 +312,11 @@
       }).join('') + '</div><div class="gv-gcol"><div class="gv-cap">Tipo de rede</div>' + TP.map(function (x) {
         return gbar('gTipo', x[0], S.gTipo === x[0], tpAtivo, x[1], cont[x[0]], porF.length, x[2], dica(cont[x[0]], porF.length, x[3]));
       }).join('') + '</div></div></div>';
-    h += '<div class="gv-card"><div class="gv-hh" style="gap:16px"><div><h3 class="gv-h3">Escolas</h3><div class="gv-s">' + (S.gOrdem === 'nota' ? 'Da pior nota para a melhor.' : 'As vistorias mais recentes primeiro.') + '</div></div><div class="gv-chips">' +
-      chip('gFiltro', 'todas', S.gFiltro === 'todas', 'Todas (' + porT.length + ')') + chip('gFiltro', 'ap', S.gFiltro === 'ap', 'Aptas (' + nf('ap') + ')') + (nf('apr') ? chip('gFiltro', 'apr', S.gFiltro === 'apr', 'Aptas com ressalva (' + nf('apr') + ')') : '') +
-      chip('gFiltro', 're', S.gFiltro === 're', 'Com ajustes (' + nf('re') + ')') + chip('gFiltro', 'rp', S.gFiltro === 'rp', 'Severas restrições (' + nf('rp') + ')') + '</div></div>';
-    h += '<div class="gv-tipo"><span class="gv-tipo-k">Ordenar por</span>' + chip('gOrdem', 'recentes', S.gOrdem !== 'nota', 'Última vistoria') + chip('gOrdem', 'nota', S.gOrdem === 'nota', 'Pior nota') + '</div>';
-    h += '<div class="gv-tipo"><span class="gv-tipo-k">Tipo de rede</span>' +
-      chip('gTipo', 'todas', S.gTipo === 'todas', 'Todas as redes (' + cont.todas + ')') + chip('gTipo', 'wifi', S.gTipo === 'wifi', 'Só Wi-Fi (' + cont.wifi + ')') +
-      chip('gTipo', 'hib', S.gTipo === 'hib', 'Híbridas, Wi-Fi e rede física (' + cont.hib + ')') + chip('gTipo', 'fis', S.gTipo === 'fis', 'Só rede física (' + cont.fis + ')') + '</div>';
+    var sit = [['todas', 'Todas (' + porT.length + ')'], ['ap', 'Aptas (' + nf('ap') + ')']].concat(nf('apr') ? [['apr', 'Aptas com ressalva (' + nf('apr') + ')']] : []).concat([['re', 'Com ajustes (' + nf('re') + ')'], ['rp', 'Severas restrições (' + nf('rp') + ')']]);
+    h += '<div class="gv-card"><div class="gv-hh" style="gap:16px"><div><h3 class="gv-h3">Escolas</h3><div class="gv-s">' + (S.gOrdem === 'nota' ? 'Da pior nota para a melhor.' : 'As vistorias mais recentes primeiro.') + '</div></div><div class="gv-sels">' +
+      seletor('gFiltro', 'Situação', S.gFiltro, sit) +
+      seletor('gTipo', 'Tipo de rede', S.gTipo, [['todas', 'Todas as redes (' + cont.todas + ')'], ['wifi', 'Só Wi-Fi (' + cont.wifi + ')'], ['hib', 'Híbridas, Wi-Fi e rede física (' + cont.hib + ')'], ['fis', 'Só rede física (' + cont.fis + ')']]) +
+      seletor('gOrdem', 'Ordenar por', S.gOrdem === 'nota' ? 'nota' : 'recentes', [['recentes', 'Última vistoria'], ['nota', 'Pior nota']]) + '</div></div>';
     h += '<div class="gv-scroll"><div class="gv-tbl" style="--w:920px;--gap:12px;--pad:13px;--cols:minmax(200px,2fr) 100px 70px 80px 70px 90px 120px 80px"><div class="gv-th"><div>Escola</div><div>Vistoria</div><div class="gv-r">Alunos</div><div class="gv-r">Nota geral</div><div class="gv-r">Wi-Fi</div><div class="gv-r">Rede física</div><div>Prontidão</div><div></div></div>' +
       lista.map(function (l) {
         return '<div class="gv-tr"><div class="b">' + esc(l.nome) + '</div><div class="num">' + (dataUlt(l) ? dt(dataUlt(l)) : '-') + '</div><div class="num gv-r">' + (l.alunos != null ? milhar(l.alunos) : '<span class="gv-ph" style="font-size:11px">Não registrado</span>') + '</div><div class="num gv-r h' + clsNota(l) + '">' + Math.round(l.nota) + '</div>' +

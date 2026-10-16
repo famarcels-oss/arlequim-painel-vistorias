@@ -257,6 +257,10 @@ details.mais .tec{margin-top:10px;word-break:break-all}
 .gv-chips{display:flex;flex-wrap:wrap;gap:8px}
 .gv-chip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid #CFC8DA;background:#fff;color:#3A3250;font-size:14px;font-weight:600;cursor:pointer}
 .gv-chip.on{border:0;background:#4B1F7A;color:#fff;font-weight:700}
+.gv-sels{display:flex;flex-wrap:wrap;gap:12px}
+.gv-sel{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#5F5870}
+.gv-sel select{min-height:44px;padding:0 36px 0 14px;border-radius:10px;border:1px solid #CFC8DA;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235F5870' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 14px center;-webkit-appearance:none;appearance:none;color:#3A3250;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.gv-sel select:focus-visible{outline:3px solid #B9A0DB;outline-offset:2px}
 .gv-tipo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px;padding-top:14px;border-top:1px solid #EEE9F4}
 .gv-tipo-k{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5F5870}
 .gv-pill{display:inline-block;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap}

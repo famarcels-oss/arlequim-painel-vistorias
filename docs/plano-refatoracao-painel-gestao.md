@@ -162,3 +162,6 @@ Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a funç
 
 ## 1.5.1
 - Endereço fixo do painel: `Meus Projetos\Painel de Vistorias (atual)\painel-vistorias.html`, regravado a cada entrega. Abrir pelo favorito e dar F5. Nenhuma tela mudou.
+
+## 1.5.2
+- Escolas: os 12 botões de filtro e ordenação viraram 3 seletores (Situação, Tipo de rede, Ordenar por) ao lado do título, com os mesmos textos e contagens. Continua abrindo pela vistoria mais recente.

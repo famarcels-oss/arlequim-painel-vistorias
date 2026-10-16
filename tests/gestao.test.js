@@ -422,3 +422,20 @@ test('Prontidão para VDI 1.5.0: categoria própria, contagem separada e ficha s
   assert.ok(!f.includes('Próxima revistoria') && !f.includes('[Definir]'), 'responsável e revistoria saíram da ficha');
   assert.ok(f.includes('Apta com ressalva'));
 });
+
+test('1.5.2: Escolas com três seletores no lugar dos botões, abrindo pela vistoria mais recente', () => {
+  const b = banco([mk({ escola: 'A', nota: 90, alunos: 100 }), mk({ escola: 'B', nota: 60, alunos: 50 })]);
+  const C = contexto(b, estado({ view: 'projeto', projeto: 'P1', gAba: 'escolas' }));
+  const html = VG.viewProjetoG(C);
+  const ini = html.indexOf('<h3 class="gv-h3">Escolas</h3>'), fim = html.indexOf('gv-scroll', ini);
+  const cab = html.slice(ini, fim);
+  assert.ok(!cab.includes('gv-chip'), 'cabeçalho de Escolas sem botões');
+  assert.deepStrictEqual((cab.match(/data-sel="(\w+)"/g) || []).map((x) => x.slice(10, -1)), ['gFiltro', 'gTipo', 'gOrdem']);
+  ['Situação', 'Tipo de rede', 'Ordenar por', 'Todas (2)', 'Aptas (', 'Com ajustes (', 'Severas restrições (', 'Todas as redes (2)', 'Só Wi-Fi (', 'Híbridas, Wi-Fi e rede física (', 'Só rede física (', 'Última vistoria', 'Pior nota'].forEach((x) => assert.ok(cab.includes(x), 'falta ' + x));
+  assert.ok(/<option value="recentes" selected>Última vistoria/.test(cab), 'abre ordenando pela vistoria mais recente');
+  assert.ok(cab.includes('As vistorias mais recentes primeiro.'));
+  C.S.gOrdem = 'nota'; C.S.gFiltro = 're';
+  const cab2 = VG.viewProjetoG(C);
+  assert.ok(/<option value="nota" selected>Pior nota/.test(cab2) && /<option value="re" selected>Com ajustes/.test(cab2));
+  assert.strictEqual((cab2.match(/data-act="abrirFicha"/g) || []).length, 1);
+});
