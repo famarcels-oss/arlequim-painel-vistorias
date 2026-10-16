@@ -159,3 +159,6 @@ Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a funç
 - O mesmo conceito visual (pílula com ponto meio verde meio âmbar) aparece em toda tela onde a escola apta com ressalva é mostrada: visão executiva, lista de escolas, melhorias, prioridade e ficha.
 - Ficha: saíram "Responsável" e "Próxima revistoria" do card Situação.
 - Projeto virou repositório Git, com tag por entrega. A versão sobe 1 a cada entrega a partir da 1.5.0.
+
+## 1.5.1
+- Endereço fixo do painel: `Meus Projetos\Painel de Vistorias (atual)\painel-vistorias.html`, regravado a cada entrega. Abrir pelo favorito e dar F5. Nenhuma tela mudou.

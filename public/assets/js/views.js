@@ -39,7 +39,7 @@
   function q(k) { return 'q-' + (k || 'n'); }
 
   // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
-  var VERSAO = '1.5.0';
+  var VERSAO = '1.5.1';
   function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
 
   // Rótulos de gestão (só texto; a régua de 80 / 51 / 50 continua a do app)

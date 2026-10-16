@@ -45,6 +45,10 @@ Ficam fora do versionamento (`.gitignore`): `node_modules/`, `dist/` e os `.zip`
 
 Para voltar atrás: `git log --oneline` acha a entrega, `git diff vX.Y.Z` mostra o que mudou desde ela, `git checkout vX.Y.Z` recupera a versão inteira.
 
+**Endereço fixo.** O painel em uso fica sempre em um único arquivo, no mesmo lugar:
+`OneDrive - ARLEQUIM\Meus Projetos\Painel de Vistorias (atual)\painel-vistorias.html`.
+A cada entrega, o `dist/painel-vistorias.html` novo é gravado por cima desse arquivo. O Fábio abre pelo favorito do navegador e dá F5; o número no canto da tela confirma a versão. Os `.zip` e `.html` versionados continuam sendo gerados para histórico.
+
 ---
 
 ## 2. Regras pétreas do painel
@@ -126,4 +130,5 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - [ ] Versão subiu 1 em `package.json` e em `VERSAO` no `views.js`.
 - [ ] Commit e tag `vX.Y.Z` feitos.
 - [ ] `docs/plano-refatoracao-painel-gestao.md` com a linha do que mudou.
+- [ ] Painel gravado no endereço fixo; aberto, F5, e a versão no canto subiu.
 - [ ] Entrega: o `.html` único e o `.zip` do projeto.
