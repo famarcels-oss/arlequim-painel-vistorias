@@ -78,6 +78,8 @@ No painel, "Apta com ressalva" é uma categoria própria da Prontidão para VDI,
 
 Regra do "Apta com ressalva": só quando a escola tem as duas notas, o app dá o geral como aprovado e uma das duas partes veio com ressalva. Se o app diz ressalva no geral, continua "Com ajustes". Se uma das partes veio reprovada, não é ressalva.
 
+**Os nomes moram num lugar só:** o dicionário `FAIXAS`, no topo do `gestao.js` (singular, plural e como cabe numa frase). Para renomear uma faixa, troca-se só ali. Nenhuma tela escreve "Apta", "Aptas", "Com ajustes" ou "Severas restrições" por conta própria: o teste "nomes das faixas só são escritos no dicionário" falha se alguém fizer isso, e o teste "trocar o nome de uma faixa muda o painel inteiro" renomeia tudo e confere todas as telas. A tela antiga (`#classico`) usa os termos do app (aprovadas, com ressalva, reprovadas) e fica fora.
+
 ---
 
 ## 4. Bateria obrigatória a cada modificação
@@ -99,6 +101,7 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
    - Nenhum número virou zero onde antes dizia "Não registrado".
 5. **Exportar e reabrir.** "Exportar painel em HTML", abrir o arquivo gerado e conferir que espectro, fotos e PDF continuam lá.
 6. **Comparar com a versão anterior**, lado a lado, nas telas que o pedido tocou.
+7. **Leitura do legado igual.** Carregar o legado real (`pacote_Nova_Lima_antigos_v4.zip`) e a amostra, nas duas versões, e conferir que as vistorias lidas, escolas, notas, faixas e datas saem idênticas. Mudança que não mexe em leitura não pode mudar uma linha.
 
 ---
 
@@ -118,6 +121,9 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - Apta com ressalva: só no caso certo.
 - Severas restrições: o rótulo antigo não sobrou em nenhuma tela.
 - Teste de carga: lê o campo, mostra na aba Pontos Wi-Fi, e não mexe na nota.
+- A mesma escola tem a mesma classificação em todas as telas.
+- Nomes das faixas: só no dicionário, e renomear muda todas as telas.
+- Código limpo: sem `console.log`, `debugger`, TODO, e sem classe CSS órfã.
 
 ---
 

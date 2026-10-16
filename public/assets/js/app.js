@@ -3,7 +3,7 @@
  */
 (function () {
   'use strict';
-  var R = window.PainelRegras, N = window.PainelNorm, D = window.PainelDados, V = window.PainelViews;
+  var N = window.PainelNorm, D = window.PainelDados, V = window.PainelViews;
   var esc = V.esc, PP = window.PainelPasta, VG = window.PainelViewsGestao;
   var banco = D.criar();
 

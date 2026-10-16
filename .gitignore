@@ -1,4 +1,16 @@
+# dependências e sistema
 node_modules/
 .DS_Store
 Thumbs.db
 *.tmp
+
+# gerado pelo build (npm run build)
+dist/
+
+# dados reais nunca entram no repositório
+dados/
+*.zip
+!amostra/*.zip
+*.pdf
+*.csv
+!amostra/*.csv

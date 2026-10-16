@@ -465,3 +465,90 @@ test('mesma escola, mesma classificação em todas as telas (apta com ressalva n
   assert.ok(vistas >= 1);
   assert.ok(telas.ficha.includes('Apta com ressalva') && telas.texto.includes('Apta com ressalva'));
 });
+
+test('código de produção sem sobra de depuração (console.log, debugger, TODO, FIXME)', () => {
+  const pasta = path.join(__dirname, '..', 'public', 'assets', 'js');
+  fs.readdirSync(pasta).filter((f) => f.endsWith('.js')).forEach((f) => {
+    const t = fs.readFileSync(path.join(pasta, f), 'utf8');
+    assert.ok(!/console\.(log|debug|info)\s*\(|\bdebugger\b|\b(TODO|FIXME|XXX)\b/.test(t), f + ' tem sobra de depuração');
+  });
+});
+
+test('nenhuma classe CSS órfã: toda classe do painel.css é usada por alguma tela', () => {
+  const raiz = path.join(__dirname, '..', 'public');
+  const css = fs.readFileSync(path.join(raiz, 'assets', 'painel.css'), 'utf8').replace(/url\([^)]*\)/g, '');
+  const js = fs.readdirSync(path.join(raiz, 'assets', 'js')).map((f) => fs.readFileSync(path.join(raiz, 'assets', 'js', f), 'utf8')).join('\n') + fs.readFileSync(path.join(raiz, 'index.html'), 'utf8');
+  const classes = [...new Set((css.match(/\.[a-zA-Z][\w-]*/g) || []).map((c) => c.slice(1)))];
+  // classes montadas por código: q(k) devolve q-<k>, e q(k) + '-t' devolve q-<k>-t (cor do texto da qualidade)
+  const dinamica = (c) => /^q-[a-z](-t)?$/.test(c);
+  const orfas = classes.filter((c) => !dinamica(c) && !new RegExp('[\\s"\'.]' + c.replace(/-/g, '\\-') + '(?![\\w-])').test(js));
+  assert.deepStrictEqual(orfas, [], 'classes CSS sem uso: ' + orfas.join(', '));
+});
+
+// ── nomes das faixas: um lugar só ───────────────────────────────────────────────
+function cenarioTodasAsFaixas() {
+  const d1 = Date.UTC(2026, 3, 1), d2 = Date.UTC(2026, 5, 10);
+  const b = banco([
+    mk({ escola: 'Escola Um', nota: 40, alunos: 300, data: d1 }), mk({ escola: 'Escola Um', nota: 92, alunos: 300, data: d2 }),
+    mk({ escola: 'Escola Dois', nota: 88, alunos: 200, data: d2 }),
+    mk({ escola: 'Escola Tres', nota: 60, alunos: 150, data: d2 }),
+    mk({ escola: 'Escola Quatro', nota: 30, alunos: 500, data: d2 }),
+    mk({ escola: 'Escola Cinco', nota: null, alunos: 80, data: d2 }),
+    mk({ escola: 'Escola Seis', nota: 45, alunos: 90, data: d2, projeto: 'P2' })
+  ]);
+  const C = contexto(b, estado());
+  const mista = C.escolas.filter((e) => /Dois/.test(e.ultima.escola))[0];
+  Object.assign(mista.ultima.calculado, { notaWifi: 70, notaCabeada: 95, statusWifi: 'COM_RESSALVA', statusCabeada: 'APROVADO' });
+  mista.ultima.cabeada.possui = true; mista.ultima.cabeada.redes = [{ nome: 'Lab', download: 95, ping: 10, jitter: 2 }];
+  return C;
+}
+function todasAsTelas(C) {
+  const S = C.S, out = [];
+  Object.assign(S, { view: 'geral', gVer: { escolas: true, melhorias: true, prioridade: true, projetos: true, rodadas: true } });
+  out.push(VG.viewHome(C), VG.textoCopiavel(C));
+  S.view = 'projeto'; S.projeto = 'P1';
+  ['visao', 'escolas', 'melhorias', 'historico'].forEach((aba) => { S.gAba = aba; out.push(VG.viewProjetoG(C)); });
+  S.gAba = 'escolas'; ['ap', 'apr', 're', 'rp'].forEach((f) => { S.gFiltro = f; out.push(VG.viewProjetoG(C)); }); S.gFiltro = 'todas';
+  out.push(VG.textoCopiavel(C));
+  C.escolas.filter((e) => V.nomeProjeto(e.ultima) === 'P1').forEach((e) => { S.view = 'ficha'; S.ficha = e.chave; out.push(VG.viewFicha(C), VG.textoCopiavel(C)); });
+  ['ap', 're', 'rp'].forEach((f) => out.push(V.faixaChip(f)));
+  return out.map((x) => (typeof x === 'string' ? x : x.band + x.corpo)).join('\n');
+}
+
+test('trocar o nome de uma faixa no dicionário muda o painel inteiro', () => {
+  const original = JSON.parse(JSON.stringify(G.FAIXAS));
+  const antes = todasAsTelas(cenarioTodasAsFaixas());
+  ['Apta', 'Aptas', 'Apta com ressalva', 'Com ajustes', 'Severas restrições', 'com severas restrições', 'está apta', 'funciona com ajustes'].forEach((x) => assert.ok(antes.includes(x), 'cenário não mostra "' + x + '"'));
+  const novos = {
+    ap: { rotulo: 'Verdinha', plural: 'Verdinhas', uma: 'verdinha', varias: 'verdinhas', verbo: 'está' },
+    apr: { rotulo: 'Verdinha com nota', plural: 'Verdinhas com nota', uma: 'verdinha com nota', varias: 'verdinhas com nota', verbo: 'está' },
+    re: { rotulo: 'Amarelinha', plural: 'Amarelinhas', uma: 'amarelinha', varias: 'amarelinhas', verbo: 'segue' },
+    rp: { rotulo: 'Vermelhinha', plural: 'Vermelhinhas', uma: 'vermelhinha', varias: 'vermelhinhas', verbo: 'fica' },
+    nm: { rotulo: 'Cinzinha', plural: 'Cinzinhas', uma: 'cinzinha', varias: 'cinzinhas', verbo: 'está' }
+  };
+  try {
+    Object.keys(novos).forEach((k) => Object.assign(G.FAIXAS[k], novos[k]));
+    const depois = todasAsTelas(cenarioTodasAsFaixas());
+    ['Verdinha', 'Verdinhas', 'Verdinha com nota', 'Amarelinha', 'Vermelhinha', 'verdinhas', 'amarelinhas', 'vermelhinhas', 'Cinzinha', 'está verdinha'].forEach((x) => assert.ok(depois.includes(x), 'nome novo não apareceu: "' + x + '"'));
+    // "Sem nota" fica fora: além de faixa, é frase comum ("Sem nota com data para mostrar")
+    const sobras = [/\bAptas?\b/, /\baptas?\b/, /[Cc]om ajustes/, /[Ss]everas restrições/].filter((re) => re.test(depois)).map((re) => re + ': …' + depois.slice(Math.max(0, depois.search(re) - 60), depois.search(re) + 40) + '…');
+    assert.deepStrictEqual(sobras, [], 'nome antigo ficou para trás em alguma tela');
+  } finally {
+    Object.keys(original).forEach((k) => Object.assign(G.FAIXAS[k], original[k]));
+  }
+  const semIds = (t) => t.replace(/\bu\d+\b/g, 'u');  // cada cenário gera chaves novas (u1, u2...)
+  assert.strictEqual(semIds(todasAsTelas(cenarioTodasAsFaixas())), semIds(antes), 'o dicionário volta ao normal depois do teste');
+});
+
+test('nomes das faixas só são escritos no dicionário de gestao.js', () => {
+  const pasta = path.join(__dirname, '..', 'public', 'assets', 'js');
+  const proibido = /\bAptas?\b|\baptas?\b|[Cc]om ajustes|[Ss]everas restrições/;
+  const achados = [];
+  ['views-gestao.js', 'views.js', 'gestao.js', 'app.js'].forEach((f) => {
+    let t = fs.readFileSync(path.join(pasta, f), 'utf8');
+    t = t.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''); // comentários não contam
+    if (f === 'gestao.js') t = t.replace(/var FAIXAS = \{[\s\S]*?\n {2}\};/, '');
+    (t.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g) || []).forEach((lit) => { if (proibido.test(lit)) achados.push(f + ': ' + lit.slice(0, 80)); });
+  });
+  assert.deepStrictEqual(achados, [], 'nome de faixa escrito fora do dicionário');
+});

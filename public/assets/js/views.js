@@ -39,14 +39,17 @@
   function q(k) { return 'q-' + (k || 'n'); }
 
   // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
-  var VERSAO = '1.5.3';
+  var VERSAO = '1.5.4';
   function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
 
-  // Rótulos de gestão (só texto; a régua de 80 / 51 / 50 continua a do app)
-  var ROT_GESTAO = { ap: 'Apta', re: 'Com ajustes', rp: 'Severas restrições' };
+  // Nome da faixa: vem do dicionário de gestao.js (carregado depois deste arquivo, por isso lido na hora)
+  function rotGestao(f) {
+    var G = typeof window !== 'undefined' && window.PainelGestao ? window.PainelGestao : typeof module === 'object' && module.exports ? require('./gestao.js') : null;
+    return G && G.FAIXAS[f] ? G.FAIXAS[f].rotulo : null;
+  }
   function faixaChip(f) {
     var F = R.FAIXAS[f] || R.FAIXAS.nm;
-    return '<span class="pill" style="background:' + F.bg + ';color:' + F.fg + '">' + (ROT_GESTAO[f] || F.l) + '</span>';
+    return '<span class="pill" style="background:' + F.bg + ';color:' + F.fg + '">' + (rotGestao(f) || F.l) + '</span>';
   }
 
   function nomeProjeto(v) { return v.projeto || 'Sem projeto'; }

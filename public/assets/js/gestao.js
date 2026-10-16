@@ -12,9 +12,23 @@
 
   var ok = N.ok;
 
-  // ── rótulos de gestão (só texto; a régua de 80 / 51 / 50 é a do app) ──────────
-  var ROTULOS = { apr: 'Apta com ressalva', ap: 'Apta', re: 'Com ajustes', rp: 'Severas restrições', nm: 'Sem nota' };
-  var ROTULO_MISTA = 'Apta com ressalva';
+  // ── nomes das faixas: ÚNICO lugar onde eles são escritos ──────────────────────
+  // Só texto; a régua de 80 / 51 / 50 é a do app. Trocar um nome aqui troca em todas as telas
+  // (teste "trocar o nome de uma faixa muda o painel inteiro").
+  //   rotulo: pílula e filtros (singular)   plural: filtros e contagens
+  //   uma / varias: como cabe depois de "escola(s)"   verbo: "a escola <verbo> <uma>"
+  var FAIXAS = {
+    ap: { rotulo: 'Apta', plural: 'Aptas', uma: 'apta', varias: 'aptas', verbo: 'está' },
+    apr: { rotulo: 'Apta com ressalva', plural: 'Aptas com ressalva', uma: 'apta com ressalva', varias: 'aptas com ressalva', verbo: 'está' },
+    re: { rotulo: 'Com ajustes', plural: 'Com ajustes', uma: 'com ajustes', varias: 'com ajustes', verbo: 'funciona' },
+    rp: { rotulo: 'Severas restrições', plural: 'Severas restrições', uma: 'com severas restrições', varias: 'com severas restrições', verbo: 'tem' },
+    nm: { rotulo: 'Sem nota', plural: 'Sem nota', uma: 'sem nota', varias: 'sem nota', verbo: 'está' }
+  };
+  // "tem severas restrições": com o verbo "tem", o "com" do início sai
+  function fraseFaixa(k) { var f = FAIXAS[k] || FAIXAS.nm; return f.verbo + ' ' + (f.verbo === 'tem' ? f.uma.replace(/^com /, '') : f.uma); }
+  // rótulos antigos, sempre lidos do dicionário
+  var ROTULOS = {};
+  Object.keys(FAIXAS).forEach(function (k) { Object.defineProperty(ROTULOS, k, { enumerable: true, get: function () { return FAIXAS[k].rotulo; } }); });
   var CORES = {
     ap: { bg: '#DDF3E5', fg: '#14693C', dot: '#1F8A4C' },
     re: { bg: '#FCEBC5', fg: '#7A4B00', dot: '#E0A526' },
@@ -158,15 +172,15 @@
     if (!r.n) { f.manchete = 'Ainda não há escola com nota para resumir.'; f.l1 = ''; f.l2 = ''; f.l3 = ''; return f; }
     var esc1 = r.n === 1;
     f.manchete = r.p === 0
-      ? (esc1 ? 'Ainda não há escola apta para VDI entre as medidas' : 'Ainda não há escola apta para VDI entre as ' + r.n + ' medidas') + '.'
+      ? (esc1 ? 'Ainda não há escola ' + FAIXAS.ap.uma + ' para VDI entre as medidas' : 'Ainda não há escola ' + FAIXAS.ap.uma + ' para VDI entre as ' + r.n + ' medidas') + '.'
       : 'Hoje ' + r.p + ' de ' + r.n + (esc1 ? ' escola medida já sustenta' : ' escolas medidas já sustentam') + ' VDI' + (r.alP > 0 ? ', com ' + milhar(r.alP) + ' alunos' : '') + '.';
     var outras = [];
-    if (r.a > 0) outras.push((r.p > 0 ? (r.a === 1 ? 'Outra funciona' : 'Outras ' + r.a + ' funcionam') : (r.a === 1 ? '1 escola funciona' : r.a + ' escolas funcionam')) + ' com ajustes.');
+    if (r.a > 0) outras.push((r.p > 0 ? (r.a === 1 ? 'Outra funciona' : 'Outras ' + r.a + ' funcionam') : (r.a === 1 ? '1 escola funciona' : r.a + ' escolas funcionam')) + ' ' + FAIXAS.re.varias + '.');
     if (r.b > 0) outras.push((r.b === 1 ? '1 ainda pede' : r.b + ' ainda pedem') + ' intervenção' + (r.alB > 0 ? ' e ' + (r.b === 1 ? 'concentra ' : 'concentram ') + milhar(r.alB) + ' alunos' + (r.alunos ? ', ' + pct(r.alB, r.alunos) + ' do total' : '') : '') + '.');
     f.l1 = outras.join(' ');
     f.l2 = top2.length >= 2 && r.alB > 0
-      ? top2[0].nome + ' e ' + top2[1].nome + ' juntos têm ' + pct(top2[0].resumo.alB + top2[1].resumo.alB, r.alB) + ' dos alunos em escolas com severas restrições.'
-      : (top2.length === 1 ? top2[0].nome + ' concentra os alunos em escolas com severas restrições.' : '');
+      ? top2[0].nome + ' e ' + top2[1].nome + ' juntos têm ' + pct(top2[0].resumo.alB + top2[1].resumo.alB, r.alB) + ' dos alunos em escolas ' + FAIXAS.rp.varias + '.'
+      : (top2.length === 1 ? top2[0].nome + ' concentra os alunos em escolas ' + FAIXAS.rp.varias + '.' : '');
     f.l3 = r.nComFisica
       ? (r.nComFisica === r.n ? 'Todas as ' + r.n + ' escolas têm rede física medida.' : r.nComFisica + ' das ' + r.n + ' escolas têm rede física medida. Nas demais vale só o Wi-Fi.')
       : 'Nenhuma escola tem rede física medida até agora. A nota é só do Wi-Fi.';
@@ -356,7 +370,7 @@
   function diagnostico(l) {
     var v = l.v, w = v.wifi || {};
     var pts = (w.pontos || []).filter(function (p) { return ok(p.download) && ok(p.ping); });
-    var fx = l.faixa === 'ap' ? 'está apta' : l.faixa === 're' ? 'funciona com ajustes' : 'tem severas restrições';
+    var fx = fraseFaixa(l.faixa === 'ap' || l.faixa === 're' ? l.faixa : 'rp');
     if (l.tipo === 'nenhum') return 'Esta vistoria não tem Wi-Fi nem rede física medidos.';
     if (semRede(v)) return 'Sem rede na visita: todos os pontos de Wi-Fi mediram 0 Mbps. A nota reflete a falta de conexão, não a qualidade do Wi-Fi. Refazer a medição quando a conexão voltar.';
     if (l.tipo === 'fis') return 'Só a rede física foi medida. Sem o Wi-Fi medido, a nota vale só a rede cabeada.';
@@ -499,7 +513,7 @@
   }
 
   return {
-    ROTULOS: ROTULOS, ROTULO_MISTA: ROTULO_MISTA, faixaParte: faixaParte, ehMista: ehMista, CORES: CORES, TIPOS: TIPOS, CAUSAS: CAUSAS, CORTE_RODADA_DIAS: CORTE_RODADA_DIAS,
+    FAIXAS: FAIXAS, fraseFaixa: fraseFaixa, ROTULOS: ROTULOS, faixaParte: faixaParte, ehMista: ehMista, CORES: CORES, TIPOS: TIPOS, CAUSAS: CAUSAS, CORTE_RODADA_DIAS: CORTE_RODADA_DIAS,
     milhar: milhar, pct: pct, pl: pl, mediaDe: mediaDe,
     tipoRede: tipoRede, temWifi: temWifi, temFisica: temFisica,
     linhasDe: linhasDe, doProjeto: doProjeto, medidas: medidas, resumo: resumo, periodo: periodo, visaoGeral: visaoGeral, textoGeral: textoGeral,

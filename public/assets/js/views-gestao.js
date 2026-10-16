@@ -10,6 +10,7 @@
   'use strict';
 
   var ok = N.ok, esc = V.esc, dt = V.dt, milhar = G.milhar, pct = G.pct, pl = G.pl;
+  var FX = G.FAIXAS; // nomes das faixas: sempre do dicionário em gestao.js, nunca escritos aqui
   var LIM_LISTA = 5, LIM_PROJ = 3, LIM_ESC = 8, DL_MAX = 150;
   var ABAS = [['visao', 'Visão executiva'], ['escolas', 'Escolas'], ['melhorias', 'Melhorias'], ['historico', 'Histórico']];
   var QC = {
@@ -26,8 +27,8 @@
   function nrOu(x, f, s) { return ok(x) ? f(x) : nrTxt(s); }
   function pillF(f, mista) {
     var c = G.CORES[f] || G.CORES.nm;
-    if (mista) return '<span class="gv-pill gv-mista"><i></i>' + esc(G.ROTULOS.apr) + '</span>';
-    return '<span class="gv-pill" style="background:' + c.bg + ';color:' + c.fg + '">' + esc(G.ROTULOS[f] || G.ROTULOS.nm) + '</span>';
+    if (mista) return '<span class="gv-pill gv-mista"><i></i>' + esc(FX.apr.rotulo) + '</span>';
+    return '<span class="gv-pill" style="background:' + c.bg + ';color:' + c.fg + '">' + esc((FX[f] || FX.nm).rotulo) + '</span>';
   }
   // nota meio verde meio âmbar quando a escola é apta mas uma das duas notas veio com ressalva
   function clsNota(l) { return l && l.mista ? ' gv-n2' : ''; }
@@ -61,7 +62,7 @@
   function vazioBox(t) { return '<div class="gv-vazio">' + esc(t) + '</div>'; }
 
   // ── faixa roxa do topo ───────────────────────────────────────────────────────
-  function btnsTopo(C, textoResumo, extra) {
+  function btnsTopo(C, extra) {
     return '<div class="gv-btns">' + (extra || '') + (C.menuHtml || '') + '</div>';
   }
   function abasHtml(S) {
@@ -87,8 +88,8 @@
     return '<div class="gv-lin"><div class="gv-card g1" style="flex:1.45 1 560px"><div class="gv-cap">' + esc(titulo) + '</div><h2 class="gv-big">' + esc(f.manchete) + '</h2><div class="gv-lines">' + linhas + '</div>' +
       '</div>' +
       '<div class="gv-card g2" style="flex:1 1 400px"><div class="gv-cap">Prontidão para VDI</div>' + barra(r, 30) +
-      '<div class="gv-leg">' + linha('ap', 'Apta', r.pp, r.alPP) + (r.pr ? linha('apr', G.ROTULOS.apr, r.pr, r.alPR) : '') + linha('re', 'Com ajustes', r.a, r.alA) + linha('rp', 'Severas restrições', r.b, r.alB) + '</div>' +
-      '<div class="gv-nota">Mesma régua do app. Apta: nota 80 ou mais. Com ajustes: 51 a 79. Severas restrições: 50 ou menos. Apta com ressalva: apta no geral, com uma das duas redes em ressalva.</div></div></div>';
+      '<div class="gv-leg">' + linha('ap', FX.ap.rotulo, r.pp, r.alPP) + (r.pr ? linha('apr', FX.apr.rotulo, r.pr, r.alPR) : '') + linha('re', FX.re.rotulo, r.a, r.alA) + linha('rp', FX.rp.rotulo, r.b, r.alB) + '</div>' +
+      '<div class="gv-nota">Mesma régua do app. ' + FX.ap.rotulo + ': nota 80 ou mais. ' + FX.re.rotulo + ': 51 a 79. ' + FX.rp.rotulo + ': 50 ou menos. ' + FX.apr.rotulo + ': ' + FX.ap.uma + ' no geral, com uma das duas redes em ressalva.</div></div></div>';
   }
   function subAlunos(r) {
     if (!r.nComAlunos) return 'Alunos não registrados';
@@ -103,20 +104,20 @@
 
   function viewHome(C) {
     var S = C.S, GV = G.visaoGeral(C.escolas), r = GV.geral, np = GV.projetos.length;
-    var band = banda({ titulo: 'Todos os projetos', fim: true, botoes: btnsTopo(C, 'Resumo para diretoria'),
+    var band = banda({ titulo: 'Todos os projetos', fim: true, botoes: btnsTopo(C),
       sub: pl(np, 'projeto', 'projetos') + ', ' + pl(r.n, 'escola medida', 'escolas medidas') + ', ' + pl(C.todas.length, 'medição', 'medições') + ' no total.' });
     if (!r.n) return { band: band, cls: '', corpo: '<div class="gv-vz">Nenhuma escola com nota calculada ainda. Carregue pacotes ou planilhas com Wi-Fi ou rede física medidos.</div>' };
     var h = blocoResumo('Resumo de todos os projetos', GV.frases, r, false);
     h += '<div class="gv-kpis">' +
       kpi('Projetos', np, 'com escolas medidas') +
-      kpi('Escolas medidas', r.n, r.semNota ? pl(r.semNota, 'escola sem nota', 'escolas sem nota') : 'todas com nota') +
-      kpi('Alunos em escolas com severas restrições', r.nComAlunos ? milhar(r.alB) : '-', subAlunos(r), '#9B1C1C') +
+      kpi('Escolas medidas', r.n, r.semNota ? pl(r.semNota, 'escola ' + FX.nm.uma, 'escolas ' + FX.nm.varias) : 'todas com nota') +
+      kpi('Alunos em escolas ' + FX.rp.varias, r.nComAlunos ? milhar(r.alB) : '-', subAlunos(r), '#9B1C1C') +
       kpi('Nota média', r.notaMedia, 'de 100, entre as escolas medidas') +
       kpi('Escolas com rede física', r.nComFisica, 'de ' + r.n + ' escolas medidas, ' + pct(r.nComFisica, r.n), '#4B1F7A') + '</div>';
 
     var projs = limitar(S, 'projetos', GV.projetos, LIM_PROJ);
     h += '<div style="display:flex;flex-direction:column;gap:14px"><div class="gv-sec"><div><h3 class="gv-h3 m">Projetos que pedem atenção</h3><div class="gv-s">' +
-      (np > LIM_PROJ ? 'Os ' + LIM_PROJ + ' com mais alunos em escolas com severas restrições.' : 'Do que tem mais alunos em escolas com severas restrições para o que tem menos.') + '</div></div>' +
+      (np > LIM_PROJ ? 'Os ' + LIM_PROJ + ' com mais alunos em escolas ' + FX.rp.varias + '.' : 'Do que tem mais alunos em escolas ' + FX.rp.varias + ' para o que tem menos.') + '</div></div>' +
       (np > LIM_PROJ ? btn('gVer', 'projetos', S.gVer && S.gVer.projetos ? 'Mostrar só os ' + LIM_PROJ : 'Ver os ' + np + ' projetos', 'l', ' aria-expanded="' + !!(S.gVer && S.gVer.projetos) + '"') : '') + '</div>';
     h += '<div class="gv-pjs">' + projs.map(function (p) {
       var q = p.resumo;
@@ -124,9 +125,9 @@
         '<div style="display:flex;flex-direction:column;gap:6px"><div class="gv-pj-row"><span style="font-weight:600">Escolas medidas</span><span class="num" style="font-weight:700">' + q.n + ' de ' + q.total + '</span></div>' +
         '<div class="gv-prog"><i style="width:' + (q.total ? (q.n / q.total * 100).toFixed(0) : 0) + '%"></i></div></div>' +
         '<div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:13px;font-weight:600;color:#3A3250">Prontidão para VDI</div>' + barra(q, 22) +
-        '<div class="num" style="display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#3A3250"><span><b style="color:#14693C">' + q.p + '</b> aptas</span>' + (q.pr ? '<span><b style="color:#14693C">' + q.pr + '</b> com ressalva</span>' : '') + '<span><b style="color:#7A4B00">' + q.a + '</b> com ajustes</span><span><b style="color:#9B1C1C">' + q.b + '</b> com severas restrições</span></div></div>' +
+        '<div class="num" style="display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#3A3250"><span><b style="color:#14693C">' + q.p + '</b> ' + FX.ap.varias + '</span>' + (q.pr ? '<span><b style="color:#14693C">' + q.pr + '</b> ' + FX.apr.varias.replace(FX.ap.varias + ' ', '') + '</span>' : '') + '<span><b style="color:#7A4B00">' + q.a + '</b> ' + FX.re.varias + '</span><span><b style="color:#9B1C1C">' + q.b + '</b> ' + FX.rp.varias + '</span></div></div>' +
         '<div class="gv-pj-par"><div><div class="k">Nota média</div><div class="v num">' + (q.notaMedia == null ? '-' : q.notaMedia) + '</div></div>' +
-        '<div><div class="k">Alunos com severas restrições</div><div class="v num" style="color:#9B1C1C">' + (q.nComAlunos ? milhar(q.alB) : '-') + '</div>' +
+        '<div><div class="k">Alunos ' + FX.rp.varias + '</div><div class="v num" style="color:#9B1C1C">' + (q.nComAlunos ? milhar(q.alB) : '-') + '</div>' +
         '<div class="u num">' + (q.nComAlunos ? pct(q.alB, q.alunos) + ' dos ' + milhar(q.alunos) + ' alunos medidos' : 'Alunos não registrados') + '</div></div></div>' +
         '<div style="margin-top:auto;padding-top:4px">' + btn('abrirProjeto', p.nome, 'Abrir projeto', 'p pj') + '</div></div>';
     }).join('') + '</div></div>';
@@ -154,7 +155,7 @@
     var S = C.S, todas = G.linhasDe(C.escolas), L = G.doProjeto(todas, S.projeto), r = G.resumo(L);
     var per = textoPeriodo(G.periodo(L.map(function (l) { return l.e; })));
     var sub = pl(r.n, 'escola medida', 'escolas medidas') + (per ? ', ' + per.charAt(0).toLowerCase() + per.slice(1) : '') + '.';
-    var band = banda({ titulo: S.projeto, sub: sub, botoes: btnsTopo(C, 'Resumo para diretoria', '<button type="button" class="gv-bo" data-act="exportarEscopo" data-arg="projeto">Exportar projeto em HTML</button>'), abas: abasHtml(S),
+    var band = banda({ titulo: S.projeto, sub: sub, botoes: btnsTopo(C, '<button type="button" class="gv-bo" data-act="exportarEscopo" data-arg="projeto">Exportar projeto em HTML</button>'), abas: abasHtml(S),
       voltar: '<button type="button" class="gv-bk" data-act="verGeral" data-arg="">' + SETA + 'Todos os projetos</button>' });
     if (!r.n && S.gAba !== 'escolas' && S.gAba !== 'historico') return { band: band, cls: 'ab', corpo: '<div class="gv-vz">Este projeto ainda não tem escola com nota calculada.</div>' };
     var causas = G.causasDoProjeto(L);
@@ -168,7 +169,7 @@
     var rot = {}; G.prioridade(L, 3).forEach(function (p) { rot[p.l.chave] = p.l.nome; });
     var xz = lim.dlRegular / DL_MAX * 100, hz = lim.pingRegular;
     var h = '<div class="gv-card" style="flex:1.1 1 560px"><h3 class="gv-h3">Velocidade e latência do Wi-Fi</h3><div class="gv-s">Cada ponto é uma escola. A zona verde é onde o VDI roda bem: mais de ' + lim.dlRegular + ' Mbps e até ' + lim.pingRegular + ' ms.</div>' +
-      '<div class="gv-leg2">' + ['ap', 're', 'rp'].map(function (f) { return '<span><i style="background:' + G.CORES[f].dot + '"></i>' + G.ROTULOS[f] + '</span>'; }).join('') + '</div>';
+      '<div class="gv-leg2">' + ['ap', 're', 'rp'].map(function (f) { return '<span><i style="background:' + G.CORES[f].dot + '"></i>' + FX[f].rotulo + '</span>'; }).join('') + '</div>';
     if (!pts.length) return h + vazioBox('Nenhuma escola com download e latência do Wi-Fi registrados.') + '</div>';
     h += '<div class="gv-scat"><div style="position:absolute;left:' + xz.toFixed(2) + '%;right:0;bottom:0;height:' + hz + '%;background:#DDF3E5;border-top:1px dashed #1F8A4C;border-left:1px dashed #1F8A4C"></div>' +
       '<div style="position:absolute;left:' + (xz + 1.2).toFixed(2) + '%;bottom:6px;font-size:12px;font-weight:700;color:#14693C">Zona VDI</div>';
@@ -195,7 +196,7 @@
     var ultimo = pts[pts.length - 1]; if (ultimo.fim) lista.push({ x: X(ultimo.fim), n: ultimo.n });
     var dLinha = lista.map(function (q, i) { return (i ? 'L' : 'M') + q.x.toFixed(1) + ',' + Y(q.n).toFixed(1); }).join(' ');
     var ult = lista[lista.length - 1];
-    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Escolas aptas ao longo do tempo, de ' + pts[0].n + ' para ' + atual + '">' +
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Escolas ' + FX.ap.varias + ' ao longo do tempo, de ' + pts[0].n + ' para ' + atual + '">' +
       '<defs><linearGradient id="gvAp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FAE6A" stop-opacity=".55"/><stop offset="1" stop-color="#2FAE6A" stop-opacity=".05"/></linearGradient></defs>' +
       '<g stroke="#E6E2EF"><line x1="0" y1="' + yb + '" x2="' + W + '" y2="' + yb + '"/><line x1="0" y1="' + Y(nmax / 2).toFixed(1) + '" x2="' + W + '" y2="' + Y(nmax / 2).toFixed(1) + '" stroke-dasharray="3 4"/></g>' +
       '<path d="' + dLinha + ' L' + ult.x.toFixed(1) + ',' + yb + ' L' + lista[0].x.toFixed(1) + ',' + yb + ' Z" fill="url(#gvAp)"/>' +
@@ -226,7 +227,6 @@
   function sugestaoOfensor(L) {
     var o = G.maiorOfensor(L);
     if (!o) return '<div class="gv-sug"><div class="gv-sug-t"><span>Sugestões · maior ofensor</span></div><div class="gv-s" style="margin:6px 0 0">Nenhuma sugestão de melhoria pendente nas escolas desta seleção.</div></div>';
-    var minus = o.nome.charAt(0).toLowerCase() + o.nome.slice(1);
     var chips = o.escolas.slice(0, 3).map(function (l) { return '<button type="button" class="gv-sug-e" data-act="abrirFicha" data-arg="' + esc(l.chave) + '">' + esc(l.nome) + '</button>'; }).join('') +
       (o.escolas.length > 3 ? '<span class="gv-sug-e mais">+' + (o.escolas.length - 3) + '</span>' : '');
     return '<div class="gv-sug"><div class="gv-sug-t"><span>Sugestões · maior ofensor</span></div><div class="gv-sug-n">' + esc(o.nome) + '</div>' +
@@ -237,22 +237,22 @@
   }
 
   function cardHistorico(L, r, ev) {
-    var pts = G.serieAptas(L), med = L.reduce(function (s, l) { return s + l.e.serie.length; }, 0);
+    var pts = G.serieAptas(L);
     var h = '<div class="gv-card gv-hc" style="flex:1 1 460px"><div class="gv-cap">Histórico do projeto</div>';
     if (pts.length >= 2) {
-      h += '<div class="gv-hc-t">Escolas aptas para VDI: de ' + pts[0].n + ' para ' + r.p + '</div>' + graficoAptas(pts, r.p) +
+      h += '<div class="gv-hc-t">Escolas ' + FX.ap.varias + ' para VDI: de ' + pts[0].n + ' para ' + r.p + '</div>' + graficoAptas(pts, r.p) +
         '<div class="gv-nota" style="margin:2px 0 14px">' + (ev ? 'Nota média das escolas medidas mais de uma vez: ' + (ev.media > 0 ? '+' : '') + d1(ev.media) + ' pts desde a medição anterior. ' : '') + 'A linha segue a data de cada medição.</div>';
-    } else h += '<div class="gv-hc-t">Escolas aptas para VDI: ' + r.p + '</div>' + vazioBox('A evolução aparece quando o projeto tiver uma segunda rodada de vistorias.');
+    } else h += '<div class="gv-hc-t">Escolas ' + FX.ap.varias + ' para VDI: ' + r.p + '</div>' + vazioBox('A evolução aparece quando o projeto tiver uma segunda rodada de vistorias.');
     return h + sugestaoOfensor(L) + '</div>';
   }
 
   function abaVisao(C, L, r, causas) {
-    var S = C.S, h = '';
+    var h = '';
     h += blocoResumo('Resumo executivo', linhasProj(r, L, causas), r, true);
     var ev = G.evolucao(L);
     h += '<div class="gv-kpis">' +
-      kpi('Escolas aptas para VDI', r.p, 'de ' + r.n + ' medidas, ' + pct(r.p, r.n), '#14693C', { meta: true }) +
-      kpi('Alunos em escolas com severas restrições', r.nComAlunos ? milhar(r.alB) : '-', subAlunos(r), '#9B1C1C') +
+      kpi('Escolas ' + FX.ap.varias + ' para VDI', r.p, 'de ' + r.n + ' medidas, ' + pct(r.p, r.n), '#14693C', { meta: true }) +
+      kpi('Alunos em escolas ' + FX.rp.varias, r.nComAlunos ? milhar(r.alB) : '-', subAlunos(r), '#9B1C1C') +
       kpi('Nota média', r.notaMedia, 'de 100, ' + r.n + ' escolas', '#2E1250', { meta: true }) +
       kpi('Latência acima de ' + R.LIM.wifi.pingRegular + ' ms', r.comPing ? r.latAlta : '-', r.comPing ? 'de ' + r.comPing + ' escolas com latência medida' : 'Latência não registrada', '#7A4B00') + '</div>';
 
@@ -307,12 +307,12 @@
     var dica = function (n, tot, quem) { return n + (n === 1 ? ' escola ' : ' escolas ') + quem + ' (' + pct(n, tot) + ' de ' + tot + '). Clique para filtrar a lista abaixo.'; };
     var TP = [['wifi', 'Só Wi-Fi', '#4B1F7A', 'só com Wi-Fi'], ['hib', 'Wi-Fi e rede física', '#7B4FB0', 'com Wi-Fi e rede física'], ['fis', 'Só rede física', '#B79BDB', 'só com rede física']];
     var h = '<div class="gv-card"><h3 class="gv-h3">Como estão as escolas</h3><div class="gv-s">Passe o mouse para ver os números. Clique em uma barra para filtrar a lista abaixo. Clique de novo para limpar.</div><div class="gv-gcols">' +
-      '<div class="gv-gcol"><div class="gv-cap">Prontidão para VDI</div>' + [['ap', 'Apta', 'aptas para VDI'], ['apr', G.ROTULOS.apr, 'aptas com ressalva'], ['re', 'Com ajustes', 'com ajustes'], ['rp', 'Severas restrições', 'com severas restrições']].map(function (x) {
+      '<div class="gv-gcol"><div class="gv-cap">Prontidão para VDI</div>' + [['ap', FX.ap.rotulo, FX.ap.varias + ' para VDI'], ['apr', FX.apr.rotulo, FX.apr.varias], ['re', FX.re.rotulo, FX.re.varias], ['rp', FX.rp.rotulo, FX.rp.varias]].map(function (x) {
         return gbar('gFiltro', x[0], S.gFiltro === x[0], fxAtivo, x[1], nf(x[0]), porT.length, G.CORES[x[0]].dot, dica(nf(x[0]), porT.length, x[2]));
       }).join('') + '</div><div class="gv-gcol"><div class="gv-cap">Tipo de rede</div>' + TP.map(function (x) {
         return gbar('gTipo', x[0], S.gTipo === x[0], tpAtivo, x[1], cont[x[0]], porF.length, x[2], dica(cont[x[0]], porF.length, x[3]));
       }).join('') + '</div></div></div>';
-    var sit = [['todas', 'Todas (' + porT.length + ')'], ['ap', 'Aptas (' + nf('ap') + ')']].concat(nf('apr') ? [['apr', 'Aptas com ressalva (' + nf('apr') + ')']] : []).concat([['re', 'Com ajustes (' + nf('re') + ')'], ['rp', 'Severas restrições (' + nf('rp') + ')']]);
+    var sit = [['todas', 'Todas (' + porT.length + ')'], ['ap', FX.ap.plural + ' (' + nf('ap') + ')']].concat(nf('apr') ? [['apr', FX.apr.plural + ' (' + nf('apr') + ')']] : []).concat([['re', FX.re.plural + ' (' + nf('re') + ')'], ['rp', FX.rp.plural + ' (' + nf('rp') + ')']]);
     h += '<div class="gv-card"><div class="gv-hh" style="gap:16px"><div><h3 class="gv-h3">Escolas</h3><div class="gv-s">' + (S.gOrdem === 'nota' ? 'Da pior nota para a melhor.' : 'As vistorias mais recentes primeiro.') + '</div></div><div class="gv-sels">' +
       seletor('gFiltro', 'Situação', S.gFiltro, sit) +
       seletor('gTipo', 'Tipo de rede', S.gTipo, [['todas', 'Todas as redes (' + cont.todas + ')'], ['wifi', 'Só Wi-Fi (' + cont.wifi + ')'], ['hib', 'Híbridas, Wi-Fi e rede física (' + cont.hib + ')'], ['fis', 'Só rede física (' + cont.fis + ')']]) +
@@ -369,7 +369,7 @@
       var X = function (i) { return ((i + 0.5) / N2 * 100); };
       h += '<div class="gv-hist"><div class="gv-eixo" style="left:-44px;top:-8px">100</div><div class="gv-eixo" style="left:-36px;top:calc(50% - 8px)">50</div><div class="gv-eixo" style="left:-26px;bottom:-8px">0</div>' +
         '<div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed #E4DEEC"></div><div style="position:absolute;left:0;right:0;top:20%;border-top:1px dashed #1F8A4C"></div>' +
-        '<div style="position:absolute;right:4px;top:20%;margin-top:-20px;font-size:12px;font-weight:700;color:#14693C">Nota 80, apta</div>';
+        '<div style="position:absolute;right:4px;top:20%;margin-top:-20px;font-size:12px;font-weight:700;color:#14693C">Nota 80, ' + FX.ap.uma + '</div>';
       var linhas = '', ant = null;
       rs.forEach(function (x, i) {
         if (x.notaMedia == null) { ant = null; return; }
@@ -392,7 +392,7 @@
     var rev = rs.slice().reverse();
     h += limitar(S, 'rodadas', rev, 3).map(function (x, i) {
       return '<div class="gv-rod' + (x.n === n ? ' on' : '') + '"><div style="font-weight:800">Rodada ' + x.n + '</div><div style="font-size:14px;color:#3A3250">' + esc(faixaDatas(x.ini, x.fim)) + '. ' + pl(x.medicoes, 'vistoria', 'vistorias') + ', ' + pl(x.escolas, 'escola medida', 'escolas medidas') + '.</div>' +
-        '<div class="num" style="font-size:13px;color:#5F5870">' + (x.notaMedia == null ? 'Sem nota.' : 'Nota média ' + x.notaMedia + '. ' + pl(x.p, 'apta', 'aptas') + ', ' + x.a + ' com ajustes, ' + x.b + ' com severas restrições' + '.') + '</div></div>';
+        '<div class="num" style="font-size:13px;color:#5F5870">' + (x.notaMedia == null ? 'Sem nota.' : 'Nota média ' + x.notaMedia + '. ' + pl(x.p, FX.ap.uma, FX.ap.varias) + ', ' + x.a + ' ' + FX.re.varias + ', ' + x.b + ' ' + FX.rp.varias + '.') + '</div></div>';
     }).join('') + (n === 1 ? '<div class="gv-rod dashed"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-weight:800;color:#5F5870">Rodada 2</span><span class="gv-pill sm gray" style="font-size:12px">A fazer</span></div><div style="font-size:14px;color:#5F5870">Ainda sem vistorias. Quando chegar, mostra a comparação com a rodada 1, escola a escola.</div></div>' : '') + '</div>' +
       verTodos(S, 'rodadas', rs.length, 3, 'Ver as ' + rs.length + ' rodadas') + '</div></div>';
     h += '<div class="gv-card"><h3 class="gv-h3">Pacote em uso</h3><div class="gv-s">De onde vieram os números. Um pacote novo com a mesma vistoria substitui o anterior.</div>' +
@@ -403,7 +403,8 @@
   }
 
   // ══ Ficha da escola (uma coluna só) ═════════════════════════════════════════
-  var NOMES_FX = { ap: 'Apta para VDI', re: 'Com ajustes para VDI', rp: 'Com severas restrições para VDI', nm: 'Sem nota' };
+  // "Apta para VDI", "Com severas restrições para VDI"... montado a partir do dicionário de faixas
+  function nomeFx(k) { return k === 'nm' || !FX[k] ? FX.nm.rotulo : V.cap(FX[k].uma) + ' para VDI'; }
 
   function maxJitter(v) { var j = ((v.wifi && v.wifi.pontos) || []).filter(function (p) { return !(ok(p.download) && p.download <= 0); }).map(function (p) { return p.jitter; }).filter(ok); return j.length ? Math.max.apply(null, j) : null; }
   function redesMedidas(v) { return ((v.cabeada && v.cabeada.redes) || []).filter(function (r) { return ok(r.download); }); }
@@ -490,7 +491,7 @@
       l.tipo === 'fis' ? 'Só a nota da rede física. O Wi-Fi não entra.' : (sel ? '' : G.posicao(L, lAtual));
     if (l.tipo === 'hib' && (l.notaWifi == null || l.notaFis == null)) sub = '';
     h += '<div class="gv-card g3"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:24px"><div style="display:flex;align-items:baseline;gap:8px"><span class="gv-nota-n num' + clsNota(l) + '" style="color:' + fx.fg + '">' + (l.nota == null ? '-' : Math.round(l.nota)) + '</span><span style="font-size:16px;color:#5F5870;font-weight:600">de 100</span></div>' +
-      '<div style="display:flex;flex-direction:column;gap:8px">' + (l.mista ? '<span class="gv-pill g gv-mista"><i></i>' + esc(G.ROTULOS.apr + ' para VDI') + '</span>' : '<span class="gv-pill g" style="background:' + fx.bg + ';color:' + fx.fg + '">' + esc(NOMES_FX[l.faixa]) + '</span>') + (sub ? '<span style="font-size:14px;color:#3A3250">' + esc(sub) + '</span>' : '') + '</div></div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px">' + (l.mista ? '<span class="gv-pill g gv-mista"><i></i>' + esc(nomeFx('apr')) + '</span>' : '<span class="gv-pill g" style="background:' + fx.bg + ';color:' + fx.fg + '">' + esc(nomeFx(l.faixa)) + '</span>') + (sub ? '<span style="font-size:14px;color:#3A3250">' + esc(sub) + '</span>' : '') + '</div></div>' +
       '<div class="gv-frase">' + esc(G.diagnostico(l)) + '</div>';
     if (l.tipo === 'wifi') {
       var sr = G.semRede(v), msg = sr ? 'Sem rede na visita' : 'Não registrado';
@@ -543,7 +544,7 @@
     // situação, evolução, arquivos, vistoria (empilhados, sem coluna lateral)
     var nFotos = V.listaFotos(v).length, nEsp = ((v.arquivos && v.arquivos.espectro) || []).length;
     h += '<div class="gv-card sd"><h3 class="gv-h3 p">Situação</h3><div class="gv-ls">' +
-      [['Prontidão', esc(l.mista ? G.ROTULOS.apr : G.ROTULOS[l.faixa])], ['Rede medida', esc(G.TIPOS[l.tipo])], ['Rede física', situacaoFisica(l)], ['Ação em andamento', 'Nenhuma']]
+      [['Prontidão', esc((l.mista ? FX.apr : FX[l.faixa] || FX.nm).rotulo)], ['Rede medida', esc(G.TIPOS[l.tipo])], ['Rede física', situacaoFisica(l)], ['Ação em andamento', 'Nenhuma']]
         .map(function (x) { return '<div><span class="gv-mut">' + x[0] + '</span><strong>' + x[1] + '</strong></div>'; }).join('') + '</div></div>';
     h += evolucaoCard(e, v);
     h += '<div class="gv-card sd"><h3 class="gv-h3 p">Arquivos</h3><div class="gv-ls"><div><span>Relatório da vistoria</span>' + (temPdf ? btn('verPdf', v.chave, 'PDF', 's') : '<span class="gv-mut">Não registrado</span>') + '</div>' +
@@ -563,7 +564,7 @@
     if (S.view === 'ficha') {
       var e = C.escolas.filter(function (x) { return x.chave === S.ficha; })[0]; if (!e) return '';
       var v = C.vistoriaSelecionada(e), l = G.linhasDe([{ chave: e.chave, ultima: v, serie: e.serie }])[0];
-      t = l.nome + ' (' + l.projeto + ')\n' + (l.nota == null ? 'Sem nota.' : 'Nota ' + Math.round(l.nota) + ' de 100. ' + (l.mista ? G.ROTULOS.apr + ' para VDI' : NOMES_FX[l.faixa]) + '.') + '\n' + G.diagnostico(l);
+      t = l.nome + ' (' + l.projeto + ')\n' + (l.nota == null ? 'Sem nota.' : 'Nota ' + Math.round(l.nota) + ' de 100. ' + nomeFx(l.mista ? 'apr' : l.faixa) + '.') + '\n' + G.diagnostico(l);
       var cs = G.causasPorTipo(v);
       if (cs.length) t += '\nCausas: ' + cs.map(function (c) { return c.item + ' (' + c.valor + ')'; }).join('; ') + '.';
       return t;

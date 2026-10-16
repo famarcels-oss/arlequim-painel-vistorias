@@ -169,3 +169,9 @@ Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a funç
 ## 1.5.3
 - Escolas e Melhorias: escola apta com ressalva aparecia com a pílula "Apta" comum. Agora mostra a pílula em degradê, como as demais telas.
 - Teste novo: a mesma escola tem a mesma classificação em todas as telas.
+
+## 1.5.4
+- Limpeza para produção, sem mudança na tela: variáveis e parâmetro sem uso, 24 regras de CSS órfãs, `.gitignore` bloqueando `dist/`, `dados/` e pacotes reais (`.zip`, `.pdf`, `.csv` fora da amostra). O `dist/` saiu do Git.
+- Nomes das faixas num dicionário único (`FAIXAS` em `gestao.js`). Todas as telas leem dali.
+- Testes novos: código sem sobra de depuração, nenhuma classe CSS órfã, nomes só no dicionário, renomear muda o painel inteiro.
+- Conferido: leitura do legado idêntica à 1.5.3 byte a byte, e as telas iguais pixel a pixel.
