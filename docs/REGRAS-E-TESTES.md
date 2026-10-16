@@ -125,6 +125,11 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - Nomes das faixas: só no dicionário, e renomear muda todas as telas.
 - Código limpo: sem `console.log`, `debugger`, TODO, e sem classe CSS órfã.
 
+`tests/painel.test.js`, publicação
+- `index.html` só carrega arquivos do próprio site, todos existentes, sem script inline executável.
+- `vercel.json` serve `public/` sem build, com os cabeçalhos de segurança.
+- O painel nunca envia dado: só três leituras conhecidas (anexo embutido e os próprios arquivos ao exportar), sem XHR, beacon ou socket.
+
 ---
 
 ## 6. Antes de dizer "pronto"
@@ -138,3 +143,4 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - [ ] `docs/plano-refatoracao-painel-gestao.md` com a linha do que mudou.
 - [ ] Painel gravado no endereço fixo; aberto, F5, e a versão no canto subiu.
 - [ ] Entrega: o `.html` único e o `.zip` do projeto.
+- [ ] Mexeu em `vercel.json` ou `index.html`: `npm run serve`, abrir `http://localhost:8080` com dado real e conferir console limpo. Roteiro em `docs/publicar-no-vercel.md`.

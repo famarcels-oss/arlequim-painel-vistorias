@@ -175,3 +175,8 @@ Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a funç
 - Nomes das faixas num dicionário único (`FAIXAS` em `gestao.js`). Todas as telas leem dali.
 - Testes novos: código sem sobra de depuração, nenhuma classe CSS órfã, nomes só no dicionário, renomear muda o painel inteiro.
 - Conferido: leitura do legado idêntica à 1.5.3 byte a byte, e as telas iguais pixel a pixel.
+
+## 1.5.5
+- Pronto para o Vercel, sem publicar: cabeçalhos `Permissions-Policy` e `Cross-Origin-Opener-Policy` no `vercel.json`, licença da fonte Manrope (`public/assets/vendor/MANROPE-OFL.txt`) e roteiro em `docs/publicar-no-vercel.md`.
+- Testes novos de publicação: só arquivos do próprio site, cabeçalhos de segurança e nenhum envio de dado.
+- Conferido com os cabeçalhos do Vercel e dado real: telas, ficha, PDF e exportação, console limpo. Nenhuma tela mudou.

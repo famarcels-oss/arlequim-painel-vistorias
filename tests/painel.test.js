@@ -361,3 +361,48 @@ test('anexos: lista do vistoria.json é respeitada mesmo com nomes fora do padr�
   assert.strictEqual(VV.listaEspectro(v).length, 2);
   v.arquivos.espectro.forEach((rel) => assert.ok(r.zip.file(v.arquivos.base + rel)));
 });
+
+// ── pronto para publicar (Vercel ou qualquer hospedagem estática) ─────────────
+test('publicação: index.html só carrega arquivos do próprio site, e todos existem', () => {
+  const pub = path.join(__dirname, '..', 'public');
+  const html = fs.readFileSync(path.join(pub, 'index.html'), 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1]).filter((u) => !u.startsWith('data:'));
+  assert.ok(refs.length >= 10, 'index.html deveria referenciar CSS e scripts');
+  refs.forEach((u) => {
+    assert.ok(!/^(https?:)?\/\//i.test(u), 'recurso externo bloqueado pela CSP: ' + u);
+    assert.ok(fs.existsSync(path.join(pub, u)), 'arquivo não existe em public/: ' + u);
+  });
+  // script inline só o bloco de dados (JSON), que a CSP não executa
+  const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>/g)].map((m) => m[1]);
+  inline.forEach((attrs) => assert.ok(/type="application\/json"/.test(attrs), 'script inline seria bloqueado pela CSP: ' + attrs));
+  assert.ok(!/\son[a-z]+="/i.test(html), 'atributo de evento inline (onclick=...) seria bloqueado pela CSP');
+});
+
+test('publicação: vercel.json serve public/ sem build e com os cabeçalhos de segurança', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
+  assert.strictEqual(cfg.outputDirectory, 'public');
+  assert.strictEqual(cfg.buildCommand, null);
+  const h = {}; cfg.headers[0].headers.forEach((x) => { h[x.key] = x.value; });
+  assert.strictEqual(cfg.headers[0].source, '/(.*)');
+  assert.ok(/script-src 'self'(;|$)/.test(h['Content-Security-Policy']), 'scripts só do próprio site');
+  assert.ok(/frame-ancestors 'none'/.test(h['Content-Security-Policy']) && h['X-Frame-Options'] === 'DENY');
+  assert.ok(/noindex/.test(h['X-Robots-Tag']), 'painel não pode aparecer em buscador');
+  assert.strictEqual(h['Cache-Control'], 'no-store');
+  assert.ok(/camera=\(\)/.test(h['Permissions-Policy']) && /geolocation=\(\)/.test(h['Permissions-Policy']));
+  assert.strictEqual(h['Referrer-Policy'], 'no-referrer');
+});
+
+test('publicação: o painel nunca envia dado (só lê os próprios arquivos e o que já está embutido)', () => {
+  const pasta = path.join(__dirname, '..', 'public', 'assets', 'js');
+  const leituras = [];
+  fs.readdirSync(pasta).forEach((f) => {
+    const t = fs.readFileSync(path.join(pasta, f), 'utf8');
+    assert.ok(!/XMLHttpRequest|sendBeacon|new WebSocket|EventSource|navigator\.share/.test(t), f + ' tem canal de envio de dados');
+    (t.match(/\bfetch\s*\([^)]*\)/g) || []).forEach((c) => leituras.push(f + ': ' + c));
+  });
+  // as únicas leituras: imagem embutida (data:) e os scripts/estilos do próprio painel ao exportar. Nenhuma com método, corpo ou URL externa.
+  assert.deepStrictEqual(leituras.sort(), ['app.js: fetch(href)', 'app.js: fetch(src)', 'app.js: fetch(v.embut[rel])']);
+  const csp = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8')).headers[0].headers.filter((x) => x.key === 'Content-Security-Policy')[0].value;
+  assert.ok(/connect-src 'self' blob: data:;/.test(csp), 'a CSP só deixa ler do próprio site, blob e data');
+  assert.ok(/form-action 'none'/.test(csp), 'nenhum formulário envia dado');
+});
