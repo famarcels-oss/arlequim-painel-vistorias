@@ -5,6 +5,8 @@
  *  2. Registro sem uuid (planilha antiga) já existente com a mesma chave: descartado.
  *  3. Planilha antiga e pacote novo da mesma vistoria (mesma escola e mesmo dia/hora): vale o do pacote novo.
  *  4. Mesmo pacote (pacoteId) carregado duas vezes: ignorado inteiro.
+ * Nome da escola: vale o final do nome (chaveEscola). "E.M HAROLD JONES", "ESCOLA MUNICIPAL HAROLD JONES" e "CEI HAROLD JONES"
+ * entram no mesmo grupo; as medições mais antigas viram histórico.
  * Duas medições da mesma escola em datas diferentes NÃO são duplicadas: a mais recente aparece no painel
  * e as anteriores ficam no Histórico.
  */
@@ -19,7 +21,7 @@
     var pacotes = {};
 
     function minutoEscola(v) {
-      return N.normNome(v.escola) + '|' + (v.data ? Math.floor(v.data / 60000) : '');
+      return N.chaveEscola(v.escola) + '|' + (v.data ? Math.floor(v.data / 60000) : '');
     }
 
     function adicionar(lista, pacoteId) {
@@ -55,7 +57,7 @@
     }
 
     function chaveEscola(v) {
-      return (v.placeId ? 'p:' + v.placeId : 'n:' + N.normNome(v.escola)) + '|' + N.normNome(v.projeto || '');
+      return (v.placeId ? 'p:' + v.placeId : 'n:' + N.chaveEscola(v.escola)) + '|' + N.normNome(v.projeto || '');
     }
 
     // Uma linha por escola: a medição mais recente + histórico (da mais antiga para a mais nova).
@@ -64,7 +66,7 @@
     function escolas() {
       var grupos = [];
       todas().sort(function (a, b) { return (b.data || 0) - (a.data || 0); }).forEach(function (v) {
-        var nome = N.normNome(v.escola);
+        var nome = N.chaveEscola(v.escola);
         var alvo = grupos.filter(function (g) {
           return g.nome === nome &&
             (!g.placeId || !v.placeId || g.placeId === v.placeId) &&

@@ -24,6 +24,7 @@
     return isFinite(n) ? n : null;
   }
   function str(x) { return x === null || x === undefined ? null : (String(x).trim() === '' ? null : String(x).trim()); }
+  function sel(x) { var t = str(x); return (t === null || t.toLowerCase() === 'selecione') ? null : t; } // "Selecione" = campo não preenchido no app
   function media(arr) {
     var a = arr.filter(ok);
     return a.length ? a.reduce(function (s, x) { return s + x; }, 0) / a.length : null;
@@ -46,6 +47,28 @@
   }
   function normNome(s) {
     return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  // Chave para comparar nomes de escola: vale o nome próprio, o final do nome. O tipo no começo ("E.M", "EM", "ESCOLA MUNICIPAL",
+  // "CEI", "EDUCAÇÃO INFANTIL", "CMEI", "EMEI"...) e "de/da/do" são ignorados, assim como acento, pontuação e maiúscula.
+  // Ex.: "ESCOLA MUNICIPAL HAROLD JONES" = "E.M HAROLD JONES". Só serve para achar a mesma escola; o nome exibido não muda.
+  var TIPOS = [
+    'escola municipal de educacao infantil', 'escola municipal de ensino fundamental', 'centro municipal de educacao infantil',
+    'centro de educacao infantil', 'escola municipal', 'educacao infantil', 'e m e f', 'e m e i', 'emef', 'emei', 'cmei', 'cei',
+    'e m', 'em', 'ei', 'escola', 'creche', 'colegio', 'tempo integral', 'integral', 'de', 'da', 'do', 'das', 'dos', 'e'
+  ];
+  function chaveEscola(nome) {
+    var base = normNome(nome);
+    var t = ' ' + base + ' ';
+    for (var mudou = true; mudou;) {
+      mudou = false;
+      for (var i = 0; i < TIPOS.length; i++) {
+        var pre = ' ' + TIPOS[i] + ' ';
+        if (t.indexOf(pre) === 0) { t = t.slice(pre.length - 1); mudou = true; break; }
+      }
+    }
+    t = t.replace(/ (de|da|do|das|dos) /g, ' ').replace(/ (de|da|do|das|dos) /g, ' ').replace(/\s+/g, ' ').trim();
+    return t || base; // nome só com o tipo ("EDUCAÇÃO INFANTIL"): usa o nome inteiro para não juntar tudo
   }
 
   // ── CSV (parser que respeita aspas e quebras de linha dentro do campo) ──────────
@@ -97,7 +120,15 @@
     var out = [];
     for (var li = 1; li < linhas.length; li++) {
       var row = linhas[li];
-      var get = function (nome) { var i = cab.indexOf(nome); return i < 0 ? null : (row[i] === undefined ? null : row[i]); };
+      // aceita mais de um nome de coluna (o app mudou os nomes ao longo das versões)
+      var get = function () {
+        for (var a = 0; a < arguments.length; a++) {
+          var i = cab.indexOf(arguments[a]);
+          if (i >= 0 && row[i] !== undefined && String(row[i]).trim() !== '') return row[i];
+        }
+        return null;
+      };
+      var tem = function (nome) { return cab.indexOf(nome) >= 0; };
       var escola = str(get('Escola'));
       if (!escola) continue;
 
@@ -139,33 +170,43 @@
       var statusWifi = str(get('Status_WiFi'));
       var wifiNaoMedido = statusWifi === 'NAO_MEDIDO' || (pontos.length === 0);
 
-      // redes cabeadas
+      // redes cabeadas: "Lab1_*" (export atual) ou "RedeFisica1_*" (nome usado em versões intermediárias)
       var redes = [];
-      for (var r = 1; cab.indexOf('RedeFisica' + r + '_Mbps') >= 0; r++) {
-        var rn = str(get('RedeFisica' + r + '_NomeLocal'));
-        var rd = numPonto(get('RedeFisica' + r + '_Mbps'));
-        if (!rn && rd === null) continue;
-        redes.push({
-          nome: rn || ('Rede ' + r), sistemaOperacional: str(get('RedeFisica' + r + '_SO')), switch: str(get('RedeFisica' + r + '_Switch')),
-          cabeamento: str(get('RedeFisica' + r + '_Cabeamento')), desktops: null, download: rd, ping: numPonto(get('RedeFisica' + r + '_Ping')), jitter: null
-        });
-      }
-      var possuiRede = simNao(get('Possui_Rede_Fisica'));
+      [['Lab', 'Laboratório de informática'], ['RedeFisica', null]].forEach(function (pref) {
+        for (var r = 1; tem(pref[0] + r + '_Mbps'); r++) {
+          var rn = str(get(pref[0] + r + '_NomeLocal')) || pref[1];
+          var rd = numPonto(get(pref[0] + r + '_Mbps'));
+          var so = sel(get(pref[0] + r + '_SO'));
+          if (rd === null && !so && !sel(get(pref[0] + r + '_Switch'))) continue;
+          redes.push({
+            nome: rn || ('Rede ' + r), sistemaOperacional: so, switch: sel(get(pref[0] + r + '_Switch')),
+            cabeamento: sel(get(pref[0] + r + '_Cabeamento')), desktops: null, download: rd, ping: numPonto(get(pref[0] + r + '_Ping')), jitter: null
+          });
+        }
+      });
+      var possuiRede = simNao(get('Possui_Laboratorio', 'Possui_Rede_Fisica'));
+      if (possuiRede === null && redes.length) possuiRede = true;
 
-      var nota = numPonto(get('Score_Geral'));
-      var scoreWifi = numPonto(get('Score_WiFi'));
-      var scoreCab = numPonto(get('Score_RedeFisica'));
-      var statusCab = str(get('Status_RedeFisica'));
-      var navZero = statusWifi === 'NAVEGABILIDADE_ZERO' || statusCab === 'NAVEGABILIDADE_ZERO';
+      var scoreWifi = numPonto(get('Score_Final_WiFi', 'Score_WiFi'));
+      var scoreCab = numPonto(get('Score_Final_Lab', 'Score_RedeFisica'));
+      var statusCab = str(get('Status_Lab', 'Status_RedeFisica'));
+      // nota geral: coluna do app, ou a mesma regra do app (com laboratório: média Wi-Fi e laboratório; sem: só Wi-Fi)
+      var nota = numPonto(get('Score_Geral_Unificado', 'Score_Geral'));
+      if (nota === null && scoreWifi !== null) {
+        if (possuiRede && scoreCab !== null) nota = wifiNaoMedido ? scoreCab : Math.round(((scoreWifi + scoreCab) / 2) * 10) / 10;
+        else nota = scoreWifi;
+      }
+      // "Navegabilidade zero" do laboratório só vale quando a escola tem laboratório (sem laboratório o app grava 0,0 e esse status)
+      var navZero = statusWifi === 'NAVEGABILIDADE_ZERO' || (possuiRede === true && statusCab === 'NAVEGABILIDADE_ZERO');
       var faixa = (wifiNaoMedido && !possuiRede) ? 'nm' : R.faixaDaNota(nota, wifiNaoMedido, navZero);
 
-      var idTxt = str(get('ID_Vistoria'));
+      var idTxt = str(get('ID_Vistoria')); if (idTxt) idTxt = idTxt.replace(/^#/, '');
       var tecnico = str(get('Tecnico')), email = str(get('Email_Tecnico'));
-      var chave = 'legado:' + hash([normNome(escola), dataTxt, normNome(tecnico), normNome(email), idTxt || ''].join('|'));
+      var chave = 'legado:' + hash([chaveEscola(escola), dataTxt, normNome(tecnico), normNome(email), idTxt || ''].join('|'));
 
       out.push({
         chave: chave, uuid: null, origem: 'planilha', arquivoOrigem: nomeArquivo || null, idLocal: idTxt,
-        escola: escola, projeto: null, endereco: null, placeId: null,
+        escola: escola, projeto: str(get('Projeto')), endereco: null, placeId: null,
         tecnico: { nome: tecnico, email: email },
         data: dataMs, criadoEm: dataMs, atualizadoEm: dataMs, versaoApp: null, aparelho: null, schemaVersion: 0,
         censo: {
@@ -173,30 +214,30 @@
           possuiChromebooks: simNao(get('Possui_Chromebooks')), chromebooks: numPonto(get('Qtd_Chromebooks')),
           possuiDesktops: simNao(get('Possui_Desktops')), desktops: numPonto(get('Qtd_Desktops')),
           possuiProjetores: simNao(get('Possui_Projetores')), projetores: numPonto(get('Qtd_Projetores')),
-          nivelInformatica: numPonto(get('Nivel_digital'))
+          nivelInformatica: numPonto(get('Nivel_digital', 'Nível_digital'))
         },
         infra: {
-          switch: str(get('Switch_WiFi')), cabeamento: null, gateway: str(get('Gateway_WiFi')), espectroWifi: str(get('Espectro')),
-          densidadeAps: str(get('Densidade_APs')), accessPoints: null, notaProfessor: str(get('Nota_Professor')),
-          possuiZonaSombra: simNao(get('Zona_de_Sombra')), salasSemSinal: str(get('Salas_Sem_Sinal'))
+          switch: sel(get('Switch_WiFi')), cabeamento: null, gateway: sel(get('Gateway_WiFi')), espectroWifi: sel(get('Espectro')),
+          densidadeAps: sel(get('Densidade_APs')), accessPoints: null, notaProfessor: sel(get('Nota_Professor')),
+          possuiZonaSombra: simNao(get('Zona_de_Sombra')), salasSemSinal: sel(get('Salas_Sem_Sinal'))
         },
         links: links,
         wifi: {
           medido: !wifiNaoMedido, modo: pontos.length && cab.indexOf('Ponto1_Mbps') >= 0 ? 'detalhado' : 'tres_pontos',
-          capacidadeEstimada: str(get('Capacidade_Estimada')), pontos: pontos,
+          capacidadeEstimada: sel(get('Capacidade_Estimada')), pontos: pontos,
           mediaDownload: media(pontos.map(function (x) { return x.download; })), mediaPing: media(pontos.map(function (x) { return x.ping; })),
           mediaUpload: null
         },
         cabeada: {
           possui: possuiRede, redes: redes,
-          legadoSwitch: str(get('Switch_RedeFisica_Legado')), legadoCabeamento: str(get('Cabo_RedeFisica_Legado')), legadoGateway: str(get('Gateway_RedeFisica_Legado')),
+          legadoSwitch: sel(get('Switch_Lab_Legado', 'Switch_RedeFisica_Legado')), legadoCabeamento: sel(get('Cabo_Lab_Legado', 'Cabo_RedeFisica_Legado')), legadoGateway: sel(get('Gateway_Lab_Legado', 'Gateway_RedeFisica_Legado')),
           legadoDownload: null, legadoPing: null, legadoJitter: null
         },
         conclusao: {
           possuiImpeditivo: simNao(get('Possui_Impeditivo')), observacoesImpeditivo: str(get('Obs_Impeditivo')),
           possuiDificuldade: simNao(get('Possui_Dificuldade')), observacoesDificuldade: str(get('Obs_Dificuldade'))
         },
-        calculado: { nota: nota, status: statusWifi, faixa: faixa, notaWifi: scoreWifi, notaCabeada: scoreCab, statusWifi: statusWifi, statusCabeada: statusCab },
+        calculado: { nota: nota, status: ({ ap: 'APROVADA', re: 'RESSALVA', rp: 'REPROVADA' })[faixa] || statusWifi, faixa: faixa, notaWifi: scoreWifi, notaCabeada: scoreCab, statusWifi: statusWifi, statusCabeada: statusCab },
         arquivos: { base: null, pdf: null, fotos: {}, espectro: [], fotosAusentes: [] },
         campos: 'parcial'
       });
@@ -207,6 +248,15 @@
   // ── vistoria.json (pacote novo) -> vistoria interna ────────────────────────────
   function jnum(x) { return (typeof x === 'number' && isFinite(x)) ? x : null; }
   function jstr(x) { return (x === null || x === undefined || x === '' || String(x).toLowerCase() === 'selecione') ? null : String(x); }
+
+  // Teste de carga (app 1.1.40): só leitura do campo, null quando não há teste. Não entra na nota.
+  function lerTesteCarga(t) {
+    if (!t || typeof t !== 'object') return null;
+    return {
+      usuarios: jnum(t.usuarios), download: jnum(t.download), upload: jnum(t.upload), ping: jnum(t.ping), jitter: jnum(t.jitter), sinalDbm: jnum(t.sinalDbm),
+      ssid: jstr(t.ssid), banda: jstr(t.banda), dataMedicao: jnum(t.dataMedicao), resultado: jstr(t.resultado), motivo: jstr(t.motivo)
+    };
+  }
 
   function normalizarJson(j, pastaNoZip, origemNome) {
     var id = j.identificacao || {}, loc = j.local || {}, tec = j.tecnico || {}, cen = j.censo || {};
@@ -236,7 +286,7 @@
     var faixa = faixaTxt === 'APROVADA' ? 'ap' : faixaTxt === 'RESSALVA' ? 're' : faixaTxt === 'REPROVADA' ? 'rp' : 'nm';
     var fotos = j.fotos || {};
     var v = {
-      chave: uuid || ('legado:' + hash([normNome(loc.escola), String(dataMs), normNome(tec.email)].join('|'))),
+      chave: uuid || ('legado:' + hash([chaveEscola(loc.escola), String(dataMs), normNome(tec.email)].join('|'))),
       uuid: uuid, origem: 'pacote', arquivoOrigem: origemNome || null, idLocal: id.idLocal != null ? String(id.idLocal) : null,
       escola: jstr(loc.escola) || '(sem nome)', projeto: jstr(loc.projeto), endereco: jstr(loc.endereco), placeId: jstr(loc.placeId),
       tecnico: { nome: jstr(tec.nome), email: jstr(tec.email) },
@@ -282,7 +332,8 @@
         },
         espectro: (j.espectro || []), fotosAusentes: arq.fotosAusentes || []
       },
-      campos: schema >= 25 ? 'completa' : 'parcial'
+      campos: schema >= 25 ? 'completa' : 'parcial',
+      testeCarga: lerTesteCarga(j.testeCarga)
     };
     // vistoria antiga que passou por um pacote novo: dados sem pontos ou sem upload continuam "não registrados"
     return v;
@@ -334,7 +385,7 @@
   }
 
   return {
-    ok: ok, media: media, hash: hash, normNome: normNome, mbpsDoLink: mbpsDoLink, parseCsv: parseCsv,
+    ok: ok, media: media, hash: hash, normNome: normNome, chaveEscola: chaveEscola, mbpsDoLink: mbpsDoLink, parseCsv: parseCsv,
     lerCsvAntigo: lerCsvAntigo, normalizarJson: normalizarJson, lerZip: lerZip, resumoNumerico: resumoNumerico, ehCsvAntigo: ehCsvAntigo
   };
 });

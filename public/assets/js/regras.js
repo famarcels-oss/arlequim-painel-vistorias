@@ -15,7 +15,7 @@
   };
 
   // k: b = bom (verde), r = regular (amarelo), f = ruim (vermelho), n = sem dado
-  var NOMES = { b: 'Bom', r: 'Regular', f: 'Ruim', n: 'não registrado' };
+  var NOMES = { b: 'Bom', r: 'Regular', f: 'Ruim', n: 'Não registrado' };
 
   function ok(n) { return typeof n === 'number' && isFinite(n); }
 

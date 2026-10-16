@@ -26,8 +26,10 @@
     var d = new Date(ms);
     return dt(ms) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
   }
-  function mbTxt(n) { return ok(n) ? fmt(n) + ' Mbps' : 'não medido'; }
-  function nr(s) { return '<span class="nr">não registrado</span>'; }
+  function mbTxt(n) { return ok(n) ? fmt(n) + ' Mbps' : 'Não medido'; }
+  // primeira letra maiúscula (início de frase e de rótulo)
+  function cap(t) { t = String(t == null ? '' : t); return t.charAt(0).toUpperCase() + t.slice(1); }
+  function nr(s) { return '<span class="nr">Não registrado</span>'; }
   function val(x, sufixo) {
     if (x === null || x === undefined || x === '') return nr();
     if (typeof x === 'number') return esc(fmt(x, Number.isInteger(x) ? 0 : 1)) + (sufixo || '');
@@ -36,9 +38,15 @@
   }
   function q(k) { return 'q-' + (k || 'n'); }
 
+  // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
+  var VERSAO = '1.5.0';
+  function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
+
+  // Rótulos de gestão (só texto; a régua de 80 / 51 / 50 continua a do app)
+  var ROT_GESTAO = { ap: 'Apta', re: 'Com ajustes', rp: 'Severas restrições' };
   function faixaChip(f) {
     var F = R.FAIXAS[f] || R.FAIXAS.nm;
-    return '<span class="pill" style="background:' + F.bg + ';color:' + F.fg + '">' + F.l + '</span>';
+    return '<span class="pill" style="background:' + F.bg + ';color:' + F.fg + '">' + (ROT_GESTAO[f] || F.l) + '</span>';
   }
 
   function nomeProjeto(v) { return v.projeto || 'Sem projeto'; }
@@ -143,11 +151,11 @@
     var base = C.escolas.filter(function (e) { return nomeProjeto(e.ultima) === S.projeto; });
     var cont = function (f) { return base.filter(function (e) { return e.ultima.calculado.faixa === f; }).length; };
     var kdef = [
-      { id: 'todos', l: 'Total de escolas', v: base.length, s: 'neste projeto', fg: '#3F1D63' },
-      { id: 'ap', l: 'Aprovadas', v: cont('ap'), s: 'nota 80 ou mais', fg: '#14693C' },
-      { id: 're', l: 'Com ressalva', v: cont('re'), s: 'nota de 51 a 79', fg: '#7A4B00' },
-      { id: 'rp', l: 'Reprovadas', v: cont('rp'), s: 'nota 50 ou menos', fg: '#9B1C1C' },
-      { id: 'nm', l: 'Wi-Fi não medido', v: cont('nm'), s: 'sem medição', fg: '#4A4458' }
+      { id: 'todos', l: 'Total de escolas', v: base.length, s: 'Neste projeto', fg: '#3F1D63' },
+      { id: 'ap', l: 'Aprovadas', v: cont('ap'), s: 'Nota 80 ou mais', fg: '#14693C' },
+      { id: 're', l: 'Com ressalva', v: cont('re'), s: 'Nota de 51 a 79', fg: '#7A4B00' },
+      { id: 'rp', l: 'Reprovadas', v: cont('rp'), s: 'Nota 50 ou menos', fg: '#9B1C1C' },
+      { id: 'nm', l: 'Wi-Fi não medido', v: cont('nm'), s: 'Sem medição', fg: '#4A4458' }
     ];
     var h = '<div class="grid g-kpi">' + kdef.map(function (k) {
       var on = S.filtro === k.id;
@@ -174,8 +182,26 @@
       var v = e.ultima, dl = v.wifi.mediaDownload, ul = v.wifi.mediaUpload;
       var pct = function (x) { return ok(x) ? Math.min(100, x / mx * 100).toFixed(0) + '%' : '2%'; };
       return '<div class="vel-row"><span class="vel-n">' + esc(v.escola) + '</span><div class="vel-b"><div class="bar-t"><i style="width:' + pct(dl) + ';background:#5B2A86"></i></div><div class="bar-t"><i style="width:' + pct(ul) + ';background:#B88CDD"></i></div></div>' +
-        '<span class="small vel-v">↓ ' + (ok(dl) ? fmt(dl) : 'não medido') + '<br>↑ ' + (ok(ul) ? fmt(ul) : 'não registrado') + '</span></div>';
+        '<span class="small vel-v">↓ ' + (ok(dl) ? fmt(dl) : 'Não medido') + '<br>↑ ' + (ok(ul) ? fmt(ul) : 'Não registrado') + '</span></div>';
     }).join('') + '<div class="small muted">Barra escura: download. Barra clara: upload (vistorias antigas não têm upload).</div>' : '<span class="muted">Sem escolas.</span>') + '</div>';
+
+    // ranking por nota: melhores e piores (nota da última vistoria de cada escola)
+    var medidas = base.filter(function (e) { return ok(e.ultima.calculado.nota); })
+      .sort(function (a, b) { return b.ultima.calculado.nota - a.ultima.calculado.nota; });
+    var kRank = Math.min(3, Math.floor(medidas.length / 2));   // com poucas escolas, divide ao meio para não repetir
+    var melhores = medidas.slice(0, kRank);
+    var piores = kRank ? medidas.slice(-kRank).reverse() : [];
+    var linhaRank = function (e, n, cls) {
+      var v = e.ultima;
+      return '<button class="rk-row" data-act="verEscola" data-arg="' + esc(e.chave) + '" title="Abrir o detalhamento desta escola"><span class="rk-n ' + cls + '">' + n + '</span><span class="rk-esc">' + esc(v.escola) + '</span>' +
+        '<span class="rk-v"><span class="b">' + fmt(v.calculado.nota, 0) + '</span> ' + faixaChip(v.calculado.faixa) + '</span></button>';
+    };
+    var tBom = kRank === 1 ? 'A melhor nota' : 'As ' + (kRank || 3) + ' melhores notas';
+    var tRuim = kRank === 1 ? 'A pior nota' : 'As ' + (kRank || 3) + ' piores notas';
+    h += '<div class="g-rank"><div class="card"><div class="t-card rk-t rk-bom">' + tBom + '</div>' +
+      (melhores.length ? melhores.map(function (e, i) { return linhaRank(e, i + 1, 'rk-bom'); }).join('') : '<span class="muted">Poucas escolas com nota para comparar.</span>') + '</div>' +
+      '<div class="card"><div class="t-card rk-t rk-ruim">' + tRuim + '</div>' +
+      (piores.length ? piores.map(function (e, i) { return linhaRank(e, i + 1, 'rk-ruim'); }).join('') : '<span class="muted">Poucas escolas com nota para comparar.</span>') + '</div></div>';
 
     h += '<h2>Pontos críticos deste projeto</h2>' + listaCriticos(criticos(base), 'criticoProjeto');
 
@@ -201,7 +227,7 @@
     var h = '<div class="tr esc-row ' + (open ? 'open' : '') + '">' +
       '<span class="b">' + esc(v.escola) + (e.serie.length > 1 ? ' <span class="small muted">' + e.serie.length + ' medições</span>' : '') + '</span>' +
       '<span class="muted">' + dt(v.data) + '</span><span class="b">' + (ok(c.nota) ? fmt(c.nota, 0) : '—') + ' ' + tendencia(e) + '</span>' +
-      '<span>' + faixaChip(c.faixa) + '</span><span>' + (ok(v.wifi.mediaDownload) ? fmt(v.wifi.mediaDownload) + ' Mbps' : 'não medido') + '</span>' +
+      '<span>' + faixaChip(c.faixa) + '</span><span>' + (ok(v.wifi.mediaDownload) ? fmt(v.wifi.mediaDownload) + ' Mbps' : 'Não medido') + '</span>' +
       '<span>' + (ok(v.wifi.mediaUpload) ? fmt(v.wifi.mediaUpload) + ' Mbps' : '—') + '</span><span>' + (ok(v.wifi.mediaPing) ? fmt(v.wifi.mediaPing, 0) + ' ms' : '—') + '</span>' +
       '<span><span class="pill ' + (v.campos === 'completa' ? 'p-ok' : 'p-gray') + '">' + (v.campos === 'completa' ? 'Completo' : 'Parcial') + '</span></span>' +
       '<span><button class="btn ' + (open ? 'btn-p' : '') + '" data-act="abrir" data-arg="' + esc(e.chave) + '" aria-expanded="' + open + '">' + (open ? 'Fechar' : 'Detalhar') + '</button></span></div>';
@@ -237,31 +263,59 @@
     return h + corpo(C, e, v);
   }
 
-  function item(k, v) { return '<div class="card it"><span class="small muted">' + k + '</span><span class="it-v">' + v + '</span></div>'; }
-  function itemQ(k, texto, kq) { return '<div class="card it"><span class="small muted">' + k + '</span><span class="it-v">' + (texto == null || texto === '' ? nr() : '<span class="dot ' + q(kq) + '"></span>' + esc(texto)) + '</span></div>'; }
+  // ícones dos cards do Resumo (traços simples, herdam a cor do card)
+  var RIC = {
+    salas: '<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18M14 12h.01"/>',
+    alunos: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 4.5 5"/>',
+    prof: '<path d="M2 9l10-5 10 5-10 5-10-5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/>',
+    chrome: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 20h20"/>',
+    ap: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>',
+    sw: '<rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/>',
+    gw: '<rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 17h.01M11 17h.01M8 11a6 6 0 0 1 8 0M5.5 8a10 10 0 0 1 13 0"/>',
+    link: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
+    nota: '<path d="M5 3h10l4 4v14H5z"/><path d="M14 3v5h5M8 13h8M8 17h6"/>',
+    alerta: '<path d="M12 3l10 18H2L12 3z"/><path d="M12 10v5M12 18h.01"/>',
+    cabo: '<path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5"/>',
+    dens: '<circle cx="7" cy="7" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><circle cx="12" cy="12" r="2"/>',
+    esp: '<path d="M3 20h18M6 20v-6M10 20V8M14 20v-10M18 20v-4"/>',
+    sombra: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+    desk: '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/>',
+    proj: '<rect x="3" y="8" width="18" height="9" rx="2"/><circle cx="14" cy="12.5" r="2.5"/><path d="M6 17v2M18 17v2"/>',
+    nivel: '<path d="M4 18l5-5 4 4 7-8"/><path d="M15 9h5v5"/>',
+    duvida: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/>',
+    estrela: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
+  };
+  function ric(ic) {
+    return ic && RIC[ic] ? '<svg class="it-ic" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + RIC[ic] + '</svg>' : '';
+  }
+  function item(k, v, ic) { return '<div class="card it">' + ric(ic) + '<span class="small muted">' + k + '</span><span class="it-v">' + v + '</span></div>'; }
+  function itemQ(k, texto, kq, ic, cls) { return '<div class="card it">' + ric(ic) + '<span class="small muted">' + k + '</span><span class="it-v">' + (texto == null || texto === '' ? nr() : '<span class="dot ' + q(kq) + (cls || '') + '"></span>' + esc(texto)) + '</span></div>'; }
 
   function tabResumo(C, e, v) {
     var c = v.censo, i = v.infra;
     var links = v.links.length ? v.links.map(function (l) { return esc((l.operadora || 'Link') + (l.tamanho ? ', ' + l.tamanho : '')); }).join('<br>') : nr();
     var sw = R.qualidadeSwitch(i.switch), gw = R.qualidadeGateway(i.gateway), cb = R.qualidadeCabos(i.cabeamento), dn = R.qualidadeDensidade(i.densidadeAps), es = R.qualidadeEspectro(i.espectroWifi);
-    var h = '<h3>Identificação</h3><div class="grid g-it">' +
-      item('Data da vistoria', v.data ? dthm(v.data) : nr()) + item('Projeto', v.projeto ? esc(v.projeto) : nr()) + item('Endereço', val(v.endereco)) +
-      item('Técnico', val(v.tecnico.nome)) + item('E-mail do técnico', val(v.tecnico.email)) + item('Versão do app', val(v.versaoApp)) + item('Aparelho', val(v.aparelho)) +
-      item('Identificador (uuid)', v.uuid ? '<span class="mono small">' + esc(v.uuid) + '</span>' : nr()) + item('Origem do dado', v.origem === 'planilha' ? 'Planilha antiga (' + esc(v.arquivoOrigem || '') + ')' : 'Pacote do app (' + esc(v.arquivoOrigem || '') + ')') + '</div>';
-    h += '<h3>Censo</h3><div class="grid g-it">' + item('Salas', val(c.salas)) + item('Alunos', val(c.alunos)) + item('Professores', val(c.professores)) +
-      item('Chromebooks', c.possuiChromebooks === false ? 'Não possui' : val(c.chromebooks)) + item('Desktops', c.possuiDesktops === false ? 'Não possui' : val(c.desktops)) +
-      item('Projetores', c.possuiProjetores === false ? 'Não possui' : val(c.projetores)) + item('Nível de informática', val(c.nivelInformatica)) + '</div>';
-    h += '<h3>Infraestrutura</h3><div class="grid g-it">' +
-      itemQ('Switch', i.switch, sw.k) + itemQ('Gateway', i.gateway, gw.k) + itemQ('Cabeamento', i.cabeamento, cb.k) +
-      itemQ('Densidade de APs', i.densidadeAps, dn.k) + itemQ('Espectro', i.espectroWifi, es.k) + item('Access points', val(i.accessPoints)) +
-      item('Nota do professor', val(i.notaProfessor)) + item('Links de internet', links) +
-      item('Zona de sombra', i.possuiZonaSombra == null ? nr() : (i.possuiZonaSombra ? 'Sim' + (i.salasSemSinal ? ': ' + esc(i.salasSemSinal) : '') : 'Não')) + '</div>';
     var con = v.conclusao;
-    h += '<h3>Conclusão</h3><div class="grid g-it">' +
-      item('Impeditivos', con.possuiImpeditivo == null ? nr() : (con.possuiImpeditivo ? 'Sim' + (con.observacoesImpeditivo ? ': ' + esc(con.observacoesImpeditivo) : '') : 'Nenhum')) +
-      item('Dificuldades', con.possuiDificuldade == null ? nr() : (con.possuiDificuldade ? 'Sim' + (con.observacoesDificuldade ? ': ' + esc(con.observacoesDificuldade) : '') : 'Nenhuma')) +
-      item('Nota geral', ok(v.calculado.nota) ? fmt(v.calculado.nota, 0) + ' ' + faixaChip(v.calculado.faixa) : nr()) +
-      item('Nota Wi-Fi / cabeada', (ok(v.calculado.notaWifi) ? fmt(v.calculado.notaWifi, 0) : '—') + ' / ' + (ok(v.calculado.notaCabeada) ? fmt(v.calculado.notaCabeada, 0) : '—')) + '</div>';
+    var imped = con.possuiImpeditivo == null ? nr() : (con.possuiImpeditivo ? 'Sim' + (con.observacoesImpeditivo ? ': ' + esc(con.observacoesImpeditivo) : '') : 'Nenhum');
+    var h = '<div class="small muted">' + [v.data ? dthm(v.data) : null, v.tecnico.nome ? 'Técnico: ' + esc(v.tecnico.nome) : null, v.endereco ? esc(v.endereco) : null].filter(Boolean).join(' · ') + '</div>';
+    // Em destaque só a contagem do local; o resto fica em "Mais detalhes"
+    h += '<div class="grid g-it">' +
+      item('Salas', val(c.salas), 'salas') + item('Alunos', val(c.alunos), 'alunos') + item('Professores', val(c.professores), 'prof') +
+      item('Chromebooks', c.possuiChromebooks === false ? 'Não possui' : val(c.chromebooks), 'chrome') +
+      item('Access points', val(i.accessPoints), 'ap') + '</div>';
+    h += '<details class="mais"><summary>Mais detalhes desta vistoria</summary>' +
+      '<div class="grid g-it">' +
+      itemQ('Switch', i.switch, sw.k, 'sw') + itemQ('Gateway', i.gateway, gw.k, 'gw') +
+      item('Links de internet', links, 'link') + item('Nota do professor', val(i.notaProfessor), 'nota') + item('Impeditivos', imped, 'alerta') +
+      itemQ('Cabeamento', i.cabeamento, cb.k, 'cabo') + itemQ('Densidade de APs', i.densidadeAps, dn.k, 'dens', dn.k === 'r' ? ' ap-reg' : '') + itemQ('Espectro', i.espectroWifi, es.k, 'esp') +
+      item('Zona de sombra', i.possuiZonaSombra == null ? nr() : (i.possuiZonaSombra ? 'Sim' + (i.salasSemSinal ? ': ' + esc(i.salasSemSinal) : '') : 'Não'), 'sombra') +
+      item('Desktops', c.possuiDesktops === false ? 'Não possui' : val(c.desktops), 'desk') + item('Projetores', c.possuiProjetores === false ? 'Não possui' : val(c.projetores), 'proj') +
+      item('Nível de informática', val(c.nivelInformatica), 'nivel') +
+      item('Dificuldades', con.possuiDificuldade == null ? nr() : (con.possuiDificuldade ? 'Sim' + (con.observacoesDificuldade ? ': ' + esc(con.observacoesDificuldade) : '') : 'Nenhuma'), 'duvida') +
+      item('Nota Wi-Fi / cabeada', (ok(v.calculado.notaWifi) ? fmt(v.calculado.notaWifi, 0) : '—') + ' / ' + (ok(v.calculado.notaCabeada) ? fmt(v.calculado.notaCabeada, 0) : '—'), 'estrela') +
+      '</div>' +
+      '<div class="small muted tec">Dados técnicos: ' + [v.projeto ? 'projeto ' + esc(v.projeto) : null, v.tecnico.email ? esc(v.tecnico.email) : null, v.versaoApp ? 'app ' + esc(v.versaoApp) : null, v.aparelho ? esc(v.aparelho) : null,
+        v.uuid ? 'id ' + esc(v.uuid) : null, v.origem === 'planilha' ? 'planilha antiga ' + esc(v.arquivoOrigem || '') : 'pacote ' + esc(v.arquivoOrigem || '')].filter(Boolean).join(' · ') + '</div></details>';
     return h;
   }
 
@@ -274,9 +328,47 @@
 
   function linhaExtra(k, v) { return '<span class="ln"><span class="muted">' + k + '</span><span class="lv">' + v + '</span></span>'; }
 
+  // Teste de carga (app 1.1.40): fica no fim da aba Pontos Wi-Fi. Só leitura; o resultado vem pronto do app e não entra na nota.
+  var TC_COR = { b: '#1E8E4E', r: '#E0A82A', f: '#B4261E', n: '#B9B2C6' };
+  var TC_PILL = { b: ['#DDF3E5', '#14693C', 'Bom'], r: ['#FCEBC5', '#7A4B00', 'Regular'], f: ['#FAD9D9', '#9B1C1C', 'Ruim'], n: ['#E8E5EE', '#4A4458', 'Não registrado'] };
+  function tcQual(par, x) {
+    if (!ok(x)) return 'n';
+    if (par === 'dl') return x >= 9 ? 'b' : x >= 4 ? 'r' : 'f';
+    if (par === 'ping') return x <= 50 ? 'b' : x <= 100 ? 'r' : 'f';
+    if (par === 'jit') return x <= 15 ? 'b' : x <= 30 ? 'r' : 'f';
+    if (par === 'sinal') return x >= 0 ? 'n' : x >= -65 ? 'b' : x >= -72 ? 'r' : 'f';
+    return 'n';
+  }
+  function tcTile(k, x, un, qk, rot) {
+    var vazio = !ok(x);
+    return '<div class="gv-tc-t"><div class="k">' + k + '</div><div class="v">' +
+      (vazio ? '<b class="gv-ph" style="font-size:14px;font-weight:600">Não registrado</b>' : '<b>' + tcNum(x) + '</b>' + (un ? ' <span>' + un + '</span>' : '')) +
+      '</div><div class="s"><i style="background:' + TC_COR[vazio ? 'n' : qk] + '"></i>' + (vazio ? 'Sem leitura' : rot) + '</div></div>';
+  }
+  function tcNum(x) { return Math.abs(x - Math.round(x)) < 0.05 ? String(Math.round(x)) : fmt(x); }
+  function tcPill(k) { var c = TC_PILL[k] || TC_PILL.n; return '<span class="gv-pill" style="background:' + c[0] + ';color:' + c[1] + '">' + c[2] + '</span>'; }
+  function blocoTesteCarga(v) {
+    var t = v.testeCarga;
+    var tit = '<div><div class="gv-tc-tt">Teste de carga</div><div class="gv-tc-s">Uma medição de Wi-Fi no meio da sala, com os usuários já usando a rede. Informativo: não entra na nota nem na faixa.</div></div>';
+    if (!t) return '<div class="gv-tc-wrap"><div class="gv-tc-box">' + tit + tcPill('n') + '</div><div class="gv-tc-vz">Esta vistoria não tem teste de carga.</div></div></div>';
+    var k = { 'Bom': 'b', 'Regular': 'r', 'Ruim': 'f' }[t.resultado] || 'n', rot = { b: 'Bom', r: 'Regular', f: 'Ruim' };
+    var qs = tcQual('sinal', t.sinalDbm), qd = tcQual('dl', t.download), qp = tcQual('ping', t.ping), qj = tcQual('jit', t.jitter);
+    var rod = [ok(t.dataMedicao) ? 'Teste de ' + dt(t.dataMedicao) : null, t.ssid ? 'rede ' + esc(t.ssid) : null, t.banda ? esc(t.banda) : null].filter(Boolean).join(', ');
+    if (ok(t.usuarios) && t.usuarios < 10) rod += (rod ? '. ' : '') + 'Menos de 10 usuários: o app avisa.'; else if (rod) rod += '.';
+    return '<div class="gv-tc-wrap"><div class="gv-tc-box">' + tit + tcPill(k) + '</div><div class="gv-tc">' +
+      tcTile('Usuários simultâneos', t.usuarios, '', ok(t.usuarios) && t.usuarios < 10 ? 'r' : 'n', ok(t.usuarios) && t.usuarios < 10 ? 'Abaixo de 10 usuários' : 'Informado no app') +
+      tcTile('Download', t.download, 'Mbps', qd, rot[qd]) +
+      tcTile('Upload', t.upload, 'Mbps', 'n', 'Informativo') +
+      tcTile('Ping', t.ping, 'ms', qp, rot[qp]) +
+      tcTile('Jitter', t.jitter, 'ms', qj, rot[qj]) +
+      (ok(t.sinalDbm) && t.sinalDbm < 0 ? tcTile('Sinal', t.sinalDbm, 'dBm', qs, rot[qs]) :
+        '<div class="gv-tc-t"><div class="k">Sinal</div><div class="v"><b class="gv-ph" style="font-size:14px;font-weight:600">Não registrado</b></div><div class="s"><i style="background:' + TC_COR.n + '"></i>Ignorado no resultado</div></div>') +
+      '</div>' + (t.motivo ? '<div class="gv-tc-m">' + esc(t.motivo) + '</div>' : '') + (rod ? '<div class="gv-tc-r">' + rod + '</div>' : '') + '</div></div>';
+  }
+
   function tabPontos(C, e, v) {
     var pts = v.wifi.pontos;
-    if (!pts.length) return '<div class="dash-box">' + (v.calculado.faixa === 'nm' ? 'Wi-Fi não medido nesta vistoria.' : 'Nenhum ponto de Wi-Fi registrado nesta vistoria.') + '</div>';
+    if (!pts.length) return '<div class="dash-box">' + (v.calculado.faixa === 'nm' ? 'Wi-Fi não medido nesta vistoria.' : 'Nenhum ponto de Wi-Fi registrado nesta vistoria.') + '</div>' + blocoTesteCarga(v);
     var cs = { b: 0, r: 0, f: 0, n: 0 };
     pts.forEach(function (p) { cs[R.qualidadeSinal(p.sinalDbm).k]++; });
     var chips = v.wifi.pontos.some(function (p) { return ok(p.sinalDbm) && p.sinalDbm !== 0; }) ?
@@ -298,7 +390,7 @@
         linhaExtra('Qualidade geral', '<span class="' + q(qd.k) + '-t">' + qd.l + '</span>') + linhaExtra('Por quê', esc(qd.motivo)) + '</span>' +
         '<span class="pt-hint small muted">Passe o mouse ou toque para ver todos os dados</span></button>';
     });
-    return h + '</div>';
+    return h + '</div>' + blocoTesteCarga(v);
   }
 
   function tabCabeada(C, e, v) {
@@ -328,14 +420,43 @@
   // ── Topologia ─────────────────────────────────────────────────────────────────
   function pior(a, b) { var ord = { n: 0, b: 1, r: 2, f: 3 }; return ord[a] >= ord[b] ? a : b; }
 
+  var ICONES = {
+    internet: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>',
+    gateway: '<rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 17h.01M11 17h.01M8 11a6 6 0 0 1 8 0M5.5 8a10 10 0 0 1 13 0"/>',
+    switch: '<rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/>',
+    cabo: '<path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0V7zM12 16v5"/>',
+    cabeada: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>',
+    ambiente: '<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
+  };
+  var COR_ICONE = { b: '#14693C', r: '#7A4B00', f: '#9B1C1C', n: '#6B6479' };
+  var COR_AP_REG = '#3A4D41'; // access point "Regular": cinza esverdeado (só o AP; o resto do Regular continua amarelo)
+  function iconeDe(tipo) {
+    var t = String(tipo || '');
+    if (t.indexOf('LINK') === 0) return 'internet';
+    if (t === 'GATEWAY') return 'gateway';
+    if (t.indexOf('SWITCH') === 0) return 'switch';
+    if (t === 'CABEAMENTO') return 'cabo';
+    if (t === 'REDE CABEADA') return 'cabeada';
+    if (t === 'ACCESS POINTS') return 'wifi';
+    return 'ambiente';
+  }
+
+  // Link escrito com Gb/Giga ("10 Giga", "1 Gb", "2Gbps") vale n x 1000 Mbps, mesmo que o app tenha gravado o número puro (ex.: 10).
+  function mbpsLink(l) {
+    var t = String((l && l.tamanho) || '').toLowerCase().replace(',', '.');
+    var m = t.match(/(\d+(?:\.\d+)?)\s*(?:gb|giga|g\b)/);
+    return m ? parseFloat(m[1]) * 1000 : l.mbps;
+  }
+
   function montarTopologia(v) {
     var i = v.infra, tiers = [];
     var no = function (id, tipo, titulo, det, extra, kq, ql, miss) {
-      return { id: id, tipo: tipo, titulo: titulo, det: det, extra: extra, k: miss ? 'n' : kq, ql: miss ? 'não registrado' : (ql || R.NOMES[kq]), miss: !!miss };
+      return { id: id, tipo: tipo, titulo: titulo, det: det, extra: extra, k: miss ? 'n' : kq, ql: miss ? 'Não registrado' : (ql || R.NOMES[kq]), miss: !!miss };
     };
     // Internet
     var nIn = v.links.length ? v.links.map(function (l, n) {
-      var ql = R.qualidadeLink(l.mbps);
+      var ql = R.qualidadeLink(mbpsLink(l));
       return no('l' + n, 'LINK DE INTERNET', l.operadora || ('Link ' + (n + 1)), l.tamanho || 'tamanho não registrado', 'Medido na vistoria: ' + mbTxt(v.wifi.mediaDownload) + ' de download. Link abaixo de 1 Gbps entra como ponto de atenção no app.', ql.k, ql.l, ql.k === 'n');
     }) : [no('l', 'LINK DE INTERNET', 'Links', 'não registrado', 'Esta vistoria não guardou os links de internet.', 'n', '', true)];
     tiers.push({ nome: 'INTERNET', nos: nIn, conn: '' });
@@ -361,15 +482,18 @@
     var den = R.qualidadeDensidade(i.densidadeAps), esp = R.qualidadeEspectro(i.espectroWifi);
     var kAp = pior(den.k === 'n' ? 'n' : den.k, esp.k === 'n' ? 'n' : esp.k);
     var apMiss = den.k === 'n' && esp.k === 'n' && !ok(i.accessPoints);
-    tiers.push({ nome: 'REDE CABEADA', conn: 'cabos', nos: nRede });
-    tiers.push({ nome: 'WI-FI', conn: 'cabo até os access points', nos: [no('ap', 'ACCESS POINTS', ok(i.accessPoints) ? i.accessPoints + ' access points' : 'Access points', (i.densidadeAps || 'densidade não registrada') + (i.espectroWifi ? ', ' + i.espectroWifi : ''), 'Densidade: ' + (den.l || '') + '. Espectro: ' + (esp.l || '') + '. A quantidade e a posição de cada AP não são registradas pelo app.', kAp, R.NOMES[kAp], apMiss)] });
+    var apReg = kAp === 'r' && !apMiss;
+    tiers.push({ nome: 'REDE CABEADA', conn: 'cabos', ramo: 'cab', nos: nRede });
+    tiers.push({ nome: 'WI-FI', conn: 'cabo até os access points', ramo: 'wifi', nos: [no('ap', 'ACCESS POINTS', ok(i.accessPoints) ? i.accessPoints + ' access points' : 'Access points', (i.densidadeAps || 'densidade não registrada') + (i.espectroWifi ? ', ' + i.espectroWifi : ''), 'Densidade: ' + (den.l || '') + '. Espectro: ' + (esp.l || '') + '. A quantidade e a posição de cada AP não são registradas pelo app.', kAp, R.NOMES[kAp], apMiss)] });
+    if (apReg) tiers[tiers.length - 1].nos[0].apReg = true;
     var pts = v.wifi.pontos;
     var nAmb = pts.length ? pts.map(function (p, n) {
       var qd = R.qualidadeWifi(p.download, p.ping, p.jitter), sg = R.qualidadeSinal(p.sinalDbm);
       var k = qd.k !== 'n' ? qd.k : sg.k;
       return no('amb' + n, 'AMBIENTE', p.nome, (p.banda ? p.banda + ', ' : '') + (sg.k === 'n' ? 'sinal não registrado' : p.sinalDbm + ' dBm, ' + sg.nivel), 'Download ' + mbTxt(p.download) + ', ping ' + (ok(p.ping) ? fmt(p.ping) + ' ms' : 'não registrado') + '. ' + qd.motivo, k, R.NOMES[k], k === 'n');
     }) : [no('amb', 'AMBIENTES', 'Pontos medidos', 'sem medição', 'Esta vistoria não tem pontos de Wi-Fi medidos.', 'n', '', true)];
-    tiers.push({ nome: 'AMBIENTES ATENDIDOS', conn: 'sinal sem fio', nos: nAmb });
+    tiers.push({ nome: 'AMBIENTES ATENDIDOS', conn: 'sinal sem fio', ramo: 'wifi', nos: nAmb });
+    tiers.forEach(function (t) { t.conn = cap(t.conn); t.nos.forEach(function (n) { n.det = cap(n.det); }); });
     return tiers;
   }
 
@@ -379,19 +503,28 @@
     var h = '<div class="info-box">Esquema montado automaticamente com o que foi registrado na vistoria (links, gateway, switch, redes cabeadas, access points e ambientes). Não é planta física. Clique em um elemento para ver os detalhes. Cada elemento é pintado com a mesma régua de cores do app.</div>' +
       '<div class="row wrap gap small"><span>Cores:</span><span class="pill q-b b-pill">Bom</span><span class="pill q-r b-pill">Regular</span><span class="pill q-f b-pill">Ruim</span><span class="pill q-n b-pill dashed">não registrado</span><span class="muted">Link, gateway e switch seguem as penalidades de hardware do app. Wi-Fi, rede cabeada e ambientes seguem as medições.</span></div>';
     h += '<div class="card topo">';
-    tiers.forEach(function (t, ti) {
-      h += '<div class="tier">';
-      if (ti > 0) h += '<div class="conn"><i></i><span class="small muted">' + esc(t.conn) + '</span><i></i></div>';
-      h += '<div class="small muted tier-n">' + t.nome + '</div><div class="row wrap gap center">';
-      t.nos.forEach(function (n) {
-        var key = v.chave + ':' + n.id, on = chaveSel === key;
-        if (on) sel = n;
-        h += '<button class="no ' + q(n.k) + (n.miss ? ' miss' : '') + (on ? ' sel' : '') + (n.neutro ? ' neutro' : '') + '" data-act="no" data-arg="' + esc(key) + '" aria-pressed="' + on + '">' +
-          '<span class="no-tipo">' + n.tipo + '</span><span class="no-t' + (n.miss ? ' nr' : '') + '">' + esc(n.titulo) + '</span><span class="small">' + esc(n.det) + '</span>' +
-          '<span class="no-q ' + q(n.k) + '-t">' + esc(n.ql) + '</span></button>';
-      });
-      h += '</div></div>';
+    var desenharNo = function (n) {
+      var key = v.chave + ':' + n.id, on = chaveSel === key;
+      if (on) sel = n;
+      var ic = '<svg class="no-ic" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="' + (n.apReg ? COR_AP_REG : (COR_ICONE[n.k] || COR_ICONE.n)) + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONES[iconeDe(n.tipo)] + '</svg>';
+      return '<button class="no ' + q(n.k) + (n.apReg ? ' ap-reg' : '') + (n.miss ? ' miss' : '') + (on ? ' sel' : '') + (n.neutro ? ' neutro' : '') + '" data-act="no" data-arg="' + esc(key) + '" aria-pressed="' + on + '">' + ic +
+        '<span class="no-tipo">' + n.tipo + '</span><span class="no-t' + (n.miss ? ' nr' : '') + '">' + esc(n.titulo) + '</span><span class="small">' + esc(n.det) + '</span>' +
+        '<span class="no-q ' + q(n.k) + '-t' + (n.apReg ? ' ap-reg-t' : '') + '">' + esc(n.ql) + '</span></button>';
+    };
+    var desenharTier = function (t, comLigacao) {
+      var r = '<div class="tier">';
+      if (comLigacao) r += '<div class="conn"><i></i><span class="small muted">' + esc(t.conn) + '</span><i></i></div>';
+      r += '<div class="small muted tier-n">' + t.nome + '</div><div class="nos">' + t.nos.map(desenharNo).join('') + '</div></div>';
+      return r;
+    };
+    var principais = tiers.filter(function (t) { return !t.ramo; });
+    principais.forEach(function (t, ti) { h += desenharTier(t, ti > 0); });
+    var ramos = [tiers.filter(function (t) { return t.ramo === 'cab'; }), tiers.filter(function (t) { return t.ramo === 'wifi'; })];
+    h += '<div class="conn"><i></i></div><div class="ramos">';
+    ramos.forEach(function (rm, ri) {
+      h += '<div class="ramo ' + (ri === 0 ? 'ramo-cab' : 'ramo-wifi') + '">' + rm.map(function (t) { return desenharTier(t, true); }).join('') + '</div>';
     });
+    h += '</div>';
     h += '</div>';
     if (sel) h += '<div class="card sel-box"><span class="t-card">' + esc(sel.titulo) + '</span><span>' + esc(sel.det) + '</span><span class="small muted">' + esc(sel.extra) + (sel.miss ? '' : ' Qualidade: ' + esc(sel.ql) + '.') + '</span></div>';
     h += '<div class="row wrap gap"><button class="btn" data-act="avisar" data-arg="Editar o esquema à mão fica para uma fase futura. Hoje ele é montado com os dados da vistoria.">Editar esquema (futuro)</button>' +
@@ -465,12 +598,27 @@
     return '<img class="' + (cls || 'thumb') + '" alt="' + esc(alt) + '" data-rel="' + esc(rel) + '" data-ch="' + esc(v.chave) + '">';
   }
 
+  // Visualização ampliada (tela cheia) de uma foto ou print, com anterior/próxima.
+  function lightbox(v, lista, atual) {
+    var idx = -1;
+    lista.forEach(function (f, n) { if (f.rel === atual) idx = n; });
+    if (idx < 0) return '';
+    var f = lista[idx], multi = lista.length > 1;
+    return '<div class="lightbox" role="dialog" aria-modal="true" aria-label="' + esc(f.nome) + '"><div class="lb-bg" data-act="fecharFoto" data-arg=""></div>' +
+      '<div class="lb-card"><div class="lb-img">' + imgTag(v, f.rel, f.nome, 'lb-pic') + '</div>' +
+      '<div class="row sb wrap gap lb-bar"><b>' + esc(f.nome) + ' <span class="small muted">' + (idx + 1) + ' de ' + lista.length + '</span></b><div class="row gap">' +
+      (multi ? '<button class="btn" data-act="fotoNav" data-arg="-1">Anterior</button><button class="btn" data-act="fotoNav" data-arg="1">Próxima</button>' : '') +
+      '<button class="btn btn-p" data-act="fecharFoto" data-arg="">Fechar</button></div></div></div></div>';
+  }
+  function listaEspectro(v) { return (v.arquivos.espectro || []).map(function (rel, i) { return { nome: 'Espectro Wi-Fi ' + (i + 1), rel: rel }; }); }
+
   function tabEspectro(C, e, v) {
     var esp = v.arquivos.espectro || [];
     if (!esp.length) return '<div class="dash-box">' + (v.campos !== 'completa' ? 'Esta vistoria foi feita antes do recurso de análise de espectro (ou o pacote não trouxe os prints). Nada a mostrar aqui.' : 'Nenhum print de espectro nesta vistoria.') + '</div>';
-    return '<div class="grid g-foto">' + esp.map(function (rel, i) {
-      return '<div class="card nopad foto"><div class="img-box">' + imgTag(v, rel, 'Espectro ' + (i + 1)) + '</div><div class="foto-n">Espectro Wi-Fi ' + (i + 1) + '</div></div>';
-    }).join('') + '</div>';
+    var lista = listaEspectro(v);
+    return '<div class="grid g-foto">' + lista.map(function (f) {
+      return '<button class="card nopad foto" data-act="foto" data-arg="' + esc(f.rel) + '"><div class="img-box tall">' + imgTag(v, f.rel, f.nome) + '</div><div class="foto-n">' + esc(f.nome) + '</div></button>';
+    }).join('') + '</div>' + lightbox(v, lista, C.S.foto);
   }
 
   function listaFotos(v) {
@@ -488,13 +636,10 @@
     var fotos = listaFotos(v);
     if (!fotos.length) return '<div class="dash-box">' + (v.origem === 'planilha' ? 'Vistoria vinda de planilha antiga: a planilha não traz fotos.' : 'Nenhuma foto nesta vistoria.') + '</div>';
     var h = '';
-    if (C.S.foto) {
-      var sel = fotos.filter(function (f) { return f.rel === C.S.foto; })[0];
-      if (sel) h += '<div class="card sel-box"><div class="img-big">' + imgTag(v, sel.rel, sel.nome, 'big') + '</div><div class="row gap"><b>' + esc(sel.nome) + '</b><button class="btn" data-act="fecharFoto" data-arg="">Fechar foto</button></div></div>';
-    }
     h += '<div class="grid g-foto">' + fotos.map(function (f) {
       return '<button class="card nopad foto" data-act="foto" data-arg="' + esc(f.rel) + '"><div class="img-box">' + imgTag(v, f.rel, f.nome) + '</div><div class="foto-n">' + esc(f.nome) + '</div></button>';
     }).join('') + '</div>';
+    h += lightbox(v, fotos, C.S.foto);
     var aus = (v.arquivos.fotosAusentes || []).length;
     if (aus) h += '<div class="dash-box nr">' + aus + ' foto(s) não estavam mais no aparelho quando o pacote foi gerado.</div>';
     return h;
@@ -513,7 +658,8 @@
   }
 
   return {
-    esc: esc, fmt: fmt, dt: dt, dthm: dthm, viewGeral: viewGeral, viewProjeto: viewProjeto, montarTopologia: montarTopologia,
-    criticos: criticos, listaFotos: listaFotos, nomeProjeto: nomeProjeto
+    esc: esc, cap: cap, fmt: fmt, dt: dt, dthm: dthm, viewGeral: viewGeral, viewProjeto: viewProjeto, montarTopologia: montarTopologia, ICONES: ICONES, COR_ICONE: COR_ICONE, COR_AP_REG: COR_AP_REG, VERSAO: VERSAO, blocoTesteCarga: blocoTesteCarga, selo: selo, iconeDe: iconeDe,
+    criticos: criticos, listaFotos: listaFotos, listaEspectro: listaEspectro, nomeProjeto: nomeProjeto,
+    detalhe: detalhe, faixaChip: faixaChip, tendencia: tendencia
   };
 });
