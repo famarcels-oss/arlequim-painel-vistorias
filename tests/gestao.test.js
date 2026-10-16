@@ -439,3 +439,29 @@ test('1.5.2: Escolas com três seletores no lugar dos botões, abrindo pela vist
   assert.ok(/<option value="nota" selected>Pior nota/.test(cab2) && /<option value="re" selected>Com ajustes/.test(cab2));
   assert.strictEqual((cab2.match(/data-act="abrirFicha"/g) || []).length, 1);
 });
+
+test('mesma escola, mesma classificação em todas as telas (apta com ressalva nunca vira "Apta")', () => {
+  const b = banco([mk({ escola: 'Escola Ressalva', nota: 90, alunos: 100, infra: { switch: 'Switch 10/100' } }), mk({ escola: 'Escola Pura', nota: 92, alunos: 80 }), mk({ escola: 'Escola Ajuste', nota: 60, alunos: 50 })]);
+  const C = contexto(b, estado({ view: 'projeto', projeto: 'P1' }));
+  const alvo = C.escolas.filter((e) => /Ressalva/.test(e.ultima.escola))[0];
+  Object.assign(alvo.ultima.calculado, { notaWifi: 68, notaCabeada: 95, statusWifi: 'COM_RESSALVA', statusCabeada: 'APROVADO' });
+  alvo.ultima.cabeada.possui = true;
+  alvo.ultima.cabeada.redes = [{ nome: 'Lab', download: 95, ping: 10, jitter: 2 }];
+  C.S.gVer = { escolas: true, melhorias: true, prioridade: true };
+  const telas = {};
+  ['visao', 'escolas', 'melhorias', 'historico'].forEach((aba) => { C.S.gAba = aba; telas[aba] = VG.viewProjetoG(C); });
+  C.S.view = 'ficha'; C.S.ficha = alvo.chave; telas.ficha = VG.viewFicha(C); telas.texto = VG.textoCopiavel(C);
+  let vistas = 0;
+  Object.keys(telas).forEach((t) => {
+    telas[t].split('class="gv-tr"').slice(1).forEach((linha) => {
+      if (linha.includes('Escola Ressalva')) {
+        vistas++;
+        if (/class="gv-pill/.test(linha)) assert.ok(linha.includes('gv-mista') && !/>Apta<\/span>/.test(linha), t + ': linha da escola com ressalva mostra a pílula errada');
+      }
+      if (linha.includes('Escola Pura')) assert.ok(!linha.includes('gv-mista'), t + ': escola apta pura ganhou ressalva');
+    });
+  });
+  assert.ok(/class="gv-tr"[^]*Escola Ressalva[^]*gv-mista/.test(telas.escolas), 'lista de Escolas sem a pílula de ressalva');
+  assert.ok(vistas >= 1);
+  assert.ok(telas.ficha.includes('Apta com ressalva') && telas.texto.includes('Apta com ressalva'));
+});

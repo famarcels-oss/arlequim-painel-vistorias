@@ -317,11 +317,11 @@
       seletor('gFiltro', 'Situação', S.gFiltro, sit) +
       seletor('gTipo', 'Tipo de rede', S.gTipo, [['todas', 'Todas as redes (' + cont.todas + ')'], ['wifi', 'Só Wi-Fi (' + cont.wifi + ')'], ['hib', 'Híbridas, Wi-Fi e rede física (' + cont.hib + ')'], ['fis', 'Só rede física (' + cont.fis + ')']]) +
       seletor('gOrdem', 'Ordenar por', S.gOrdem === 'nota' ? 'nota' : 'recentes', [['recentes', 'Última vistoria'], ['nota', 'Pior nota']]) + '</div></div>';
-    h += '<div class="gv-scroll"><div class="gv-tbl" style="--w:920px;--gap:12px;--pad:13px;--cols:minmax(200px,2fr) 100px 70px 80px 70px 90px 120px 80px"><div class="gv-th"><div>Escola</div><div>Vistoria</div><div class="gv-r">Alunos</div><div class="gv-r">Nota geral</div><div class="gv-r">Wi-Fi</div><div class="gv-r">Rede física</div><div>Prontidão</div><div></div></div>' +
+    h += '<div class="gv-scroll"><div class="gv-tbl" style="--w:960px;--gap:12px;--pad:13px;--cols:minmax(200px,2fr) 100px 70px 80px 70px 90px 160px 80px"><div class="gv-th"><div>Escola</div><div>Vistoria</div><div class="gv-r">Alunos</div><div class="gv-r">Nota geral</div><div class="gv-r">Wi-Fi</div><div class="gv-r">Rede física</div><div>Prontidão</div><div></div></div>' +
       lista.map(function (l) {
         return '<div class="gv-tr"><div class="b">' + esc(l.nome) + '</div><div class="num">' + (dataUlt(l) ? dt(dataUlt(l)) : '-') + '</div><div class="num gv-r">' + (l.alunos != null ? milhar(l.alunos) : '<span class="gv-ph" style="font-size:11px">Não registrado</span>') + '</div><div class="num gv-r h' + clsNota(l) + '">' + Math.round(l.nota) + '</div>' +
           '<div class="num gv-r">' + (l.notaWifi != null && l.tipo !== 'fis' ? Math.round(l.notaWifi) : '<span class="gv-ph" style="font-size:11px">Sem Wi-Fi</span>') + '</div>' +
-          '<div class="num gv-r">' + (l.notaFis != null ? Math.round(l.notaFis) : '<span class="gv-ph" style="font-size:11px">Sem rede física</span>') + '</div><div style="justify-self:start">' + pillF(l.faixa) + '</div><div>' + btn('abrirFicha', l.chave, 'Abrir', 's') + '</div></div>';
+          '<div class="num gv-r">' + (l.notaFis != null ? Math.round(l.notaFis) : '<span class="gv-ph" style="font-size:11px">Sem rede física</span>') + '</div><div style="justify-self:start">' + pillF(l.faixa, l.mista) + '</div><div>' + btn('abrirFicha', l.chave, 'Abrir', 's') + '</div></div>';
       }).join('') + '</div></div>';
     if (!base.length) h += '<div style="padding:28px 8px;text-align:center;color:#5F5870;font-size:14px">Nenhuma escola neste filtro.</div>';
     if (base.length > LIM_ESC) h += '<div class="gv-mais">' + btn('gVer', 'escolas', S.gVer && S.gVer.escolas ? 'Mostrar só as ' + LIM_ESC : 'Ver as ' + base.length + ' escolas', 'l', ' aria-expanded="' + !!(S.gVer && S.gVer.escolas) + '"') + '</div>';
@@ -352,10 +352,10 @@
       .sort(function (a, b) { return b.itens.length - a.itens.length || (a.l.nota == null ? 101 : a.l.nota) - (b.l.nota == null ? 101 : b.l.nota); });
     h += '<div class="gv-card"><div class="gv-hh"><div><h3 class="gv-h3">' + (sel === 'todas' ? 'Escolas com melhorias sugeridas' : 'Escolas que precisam de: ' + esc(cat.nome)) + '</h3><div class="gv-s">' +
       pl(linhas.length, 'escola', 'escolas') + '. Quem tem mais melhorias vem na frente.</div></div>' + (sel !== 'todas' ? btn('gMelhoria', sel, 'Limpar filtro') : '') + '</div>';
-    h += '<div class="gv-scroll"><div class="gv-tbl" style="--w:900px;--gap:12px;--pad:13px;--cols:minmax(200px,2fr) 70px 64px 120px minmax(220px,2.4fr) 100px"><div class="gv-th"><div>Escola</div><div class="gv-r">Alunos</div><div class="gv-r">Nota</div><div>Prontidão</div><div>Melhorias</div><div></div></div>' +
+    h += '<div class="gv-scroll"><div class="gv-tbl" style="--w:940px;--gap:12px;--pad:13px;--cols:minmax(200px,2fr) 70px 64px 160px minmax(220px,2.4fr) 100px"><div class="gv-th"><div>Escola</div><div class="gv-r">Alunos</div><div class="gv-r">Nota</div><div>Prontidão</div><div>Melhorias</div><div></div></div>' +
       limitar(S, 'melhorias', linhas, LIM_ESC).map(function (x) {
         var l = x.l;
-        return '<div class="gv-tr"><div class="b"><button type="button" class="gv-link" data-act="abrirFicha" data-arg="' + esc(l.chave) + '">' + esc(l.nome) + '</button></div><div class="num gv-r">' + nrOu(l.alunos, milhar) + '</div><div class="num gv-r h">' + (l.nota == null ? '-' : Math.round(l.nota)) + '</div><div>' + pillF(l.faixa) + '</div>' +
+        return '<div class="gv-tr"><div class="b"><button type="button" class="gv-link" data-act="abrirFicha" data-arg="' + esc(l.chave) + '">' + esc(l.nome) + '</button></div><div class="num gv-r">' + nrOu(l.alunos, milhar) + '</div><div class="num gv-r h">' + (l.nota == null ? '-' : Math.round(l.nota)) + '</div><div>' + pillF(l.faixa, l.mista) + '</div>' +
           '<div style="font-size:13px;color:#3A3250">' + x.itens.map(esc).join(', ') + '</div><div>' + btn('abrirFicha', l.chave, 'Abrir', 's') + '</div></div>';
       }).join('') + '</div></div>' + verTodos(S, 'melhorias', linhas.length, LIM_ESC, 'Ver as ' + linhas.length + ' escolas') + '</div>';
     return h;

@@ -165,3 +165,7 @@ Mudança em arquivo protegido, com justificativa: `normalizar.js` ganhou a funç
 
 ## 1.5.2
 - Escolas: os 12 botões de filtro e ordenação viraram 3 seletores (Situação, Tipo de rede, Ordenar por) ao lado do título, com os mesmos textos e contagens. Continua abrindo pela vistoria mais recente.
+
+## 1.5.3
+- Escolas e Melhorias: escola apta com ressalva aparecia com a pílula "Apta" comum. Agora mostra a pílula em degradê, como as demais telas.
+- Teste novo: a mesma escola tem a mesma classificação em todas as telas.
