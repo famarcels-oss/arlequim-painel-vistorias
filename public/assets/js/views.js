@@ -39,7 +39,7 @@
   function q(k) { return 'q-' + (k || 'n'); }
 
   // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
-  var VERSAO = '1.5.6';
+  var VERSAO = '1.5.7';
   function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
 
   // Nome da faixa: vem do dicionário de gestao.js (carregado depois deste arquivo, por isso lido na hora)
@@ -331,7 +331,7 @@
 
   function linhaExtra(k, v) { return '<span class="ln"><span class="muted">' + k + '</span><span class="lv">' + v + '</span></span>'; }
 
-  // Teste de carga (app 1.1.40): fica no fim da aba Pontos Wi-Fi. Só leitura; o resultado vem pronto do app e não entra na nota.
+  // Teste de carga (app 1.1.40): fica no fim da aba Pontos Wi-Fi. Só leitura; o resultado e a nota vêm prontos do app (desde a 1.2.0 a nota Wi-Fi já chega com o desconto).
   var TC_COR = { b: '#1E8E4E', r: '#E0A82A', f: '#B4261E', n: '#B9B2C6' };
   var TC_PILL = { b: ['#DDF3E5', '#14693C', 'Bom'], r: ['#FCEBC5', '#7A4B00', 'Regular'], f: ['#FAD9D9', '#9B1C1C', 'Ruim'], n: ['#E8E5EE', '#4A4458', 'Não registrado'] };
   function tcQual(par, x) {
@@ -352,7 +352,7 @@
   function tcPill(k) { var c = TC_PILL[k] || TC_PILL.n; return '<span class="gv-pill" style="background:' + c[0] + ';color:' + c[1] + '">' + c[2] + '</span>'; }
   function blocoTesteCarga(v) {
     var t = v.testeCarga;
-    var tit = '<div><div class="gv-tc-tt">Teste de carga</div><div class="gv-tc-s">Uma medição de Wi-Fi no meio da sala, com os usuários já usando a rede. Informativo: não entra na nota nem na faixa.</div></div>';
+    var tit = '<div><div class="gv-tc-tt">Teste de carga' + (t && t.editado ? ' <span style="font-size:14px;font-weight:600;color:#5F5870">(editado)</span>' : '') + '</div></div>';
     if (!t) return '<div class="gv-tc-wrap"><div class="gv-tc-box">' + tit + tcPill('n') + '</div><div class="gv-tc-vz">Esta vistoria não tem teste de carga.</div></div></div>';
     var k = { 'Bom': 'b', 'Regular': 'r', 'Ruim': 'f' }[t.resultado] || 'n', rot = { b: 'Bom', r: 'Regular', f: 'Ruim' };
     var qs = tcQual('sinal', t.sinalDbm), qd = tcQual('dl', t.download), qp = tcQual('ping', t.ping), qj = tcQual('jit', t.jitter);
@@ -369,8 +369,17 @@
       '</div>' + (t.motivo ? '<div class="gv-tc-m">' + esc(t.motivo) + '</div>' : '') + (rod ? '<div class="gv-tc-r">' + rod + '</div>' : '') + '</div></div>';
   }
 
+  // Rede e caminho até o VDI (app 1.2.0): linhas extras do cartão, só quando a vistoria trouxe algum desses dados.
+  function linhasRede(p) {
+    var r = p.rede || {}, ms = function (x) { return ok(x) ? tcNum(x) + ' ms' : nr(); };
+    var canal = ok(r.canal) ? r.canal + (ok(r.larguraMhz) ? ', ' + r.larguraMhz + ' MHz' : '') : (ok(r.larguraMhz) ? r.larguraMhz + ' MHz' : nr());
+    var redes = ok(r.redesNoCanal) ? r.redesNoCanal + (ok(r.redesNoCanalFortes) ? ' (' + (r.redesNoCanalFortes === 0 ? 'nenhuma forte' : r.redesNoCanalFortes + (r.redesNoCanalFortes === 1 ? ' forte' : ' fortes')) + ')' : '') : nr();
+    return linhaExtra('TX negociada', ok(r.txNegociadaMbps) ? tcNum(r.txNegociadaMbps) + ' Mbps' : nr()) + linhaExtra('Canal e largura', canal) + linhaExtra('Redes no canal', redes) +
+      linhaExtra('DNS até o VDI', ms(r.dnsMs)) + linhaExtra('TCP/443 até o VDI', ms(r.tcp443Ms)) + linhaExtra('Destino do VDI', r.destino ? esc(r.destino) : nr());
+  }
+
   function tabPontos(C, e, v) {
-    var pts = v.wifi.pontos;
+    var pts = v.wifi.pontos, comRede = pts.some(function (p) { return !!p.rede; });
     if (!pts.length) return '<div class="dash-box">' + (v.calculado.faixa === 'nm' ? 'Wi-Fi não medido nesta vistoria.' : 'Nenhum ponto de Wi-Fi registrado nesta vistoria.') + '</div>' + blocoTesteCarga(v);
     var cs = { b: 0, r: 0, f: 0, n: 0 };
     pts.forEach(function (p) { cs[R.qualidadeSinal(p.sinalDbm).k]++; });
@@ -388,7 +397,7 @@
         '<span class="pt-q">' + qd.l + '</span>' +
         '<span class="pt-extra">' + linhaExtra('Ordem do ponto', '#' + (i + 1) + ' de ' + pts.length) + linhaExtra('Banda', p.banda ? esc(p.banda) : nr()) +
         linhaExtra('Sinal', sg.k === 'n' ? nr() : '<span class="' + q(sg.k) + '-t">' + sg.l + ' (' + p.sinalDbm + ' dBm)</span>') +
-        linhaExtra('Upload', ok(p.upload) ? fmt(p.upload) + ' Mbps' : nr()) + linhaExtra('Suporta', p.capacidade ? esc(p.capacidade) : nr()) +
+        linhaExtra('Upload', ok(p.upload) ? fmt(p.upload) + ' Mbps' : nr()) + linhaExtra('Suporta', p.capacidade ? esc(p.capacidade) : nr()) + (comRede ? linhasRede(p) : '') +
         linhaExtra('Medição manual', p.manual == null ? nr() : (p.manual ? 'Sim' : 'Não')) +
         linhaExtra('Qualidade geral', '<span class="' + q(qd.k) + '-t">' + qd.l + '</span>') + linhaExtra('Por quê', esc(qd.motivo)) + '</span>' +
         '<span class="pt-hint small muted">Passe o mouse ou toque para ver todos os dados</span></button>';

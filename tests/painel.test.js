@@ -71,9 +71,11 @@ test('pacote B repete vistorias do A: duplicadas descartadas, reeditada atualiza
   assert.strictEqual(r.duplicadas, 2, 'Aurora e Ipê (novo) já existiam');
   assert.strictEqual(r.atualizadas, 1, 'Girassol foi reeditado com atualizadoEm maior');
   assert.strictEqual(r.novas, 5);
-  assert.strictEqual(banco.total(), 12);
-  const gir = banco.todas().filter((v) => v.escola === 'CMEI Girassol')[0];
-  assert.strictEqual(gir.calculado.nota, 91);
+  // 1.5.7: a nota anterior do Girassol (88) não some, fica na série como medição anterior
+  assert.strictEqual(banco.total(), 13);
+  const gir = banco.escolas().filter((e) => e.ultima.escola === 'CMEI Girassol')[0];
+  assert.strictEqual(gir.ultima.calculado.nota, 91);
+  assert.deepStrictEqual(gir.serie.map((v) => v.calculado.nota), [88, 91]);
 });
 
 test('planilha antiga é tolerante: campos ausentes ficam null', async () => {

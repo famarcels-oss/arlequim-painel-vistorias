@@ -411,7 +411,6 @@ details.mais .tec{margin-top:10px;word-break:break-all}
 .gv-tc-m{font-size:14.5px;color:#1F1A2E;background:#F5F1FA;border-radius:10px;padding:10px 14px;margin-bottom:6px}
 .gv-tc-box{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #E4DEEC}
 .gv-tc-tt{font-size:18px;font-weight:800;color:#1F1A2E}
-.gv-tc-s{font-size:13.5px;color:#5F5870;max-width:720px;margin-top:2px}
 .gv-tc-vz{margin-top:12px;border:1px dashed #CFC8DA;border-radius:12px;padding:16px;color:#5F5870;font-size:14px;text-align:center}
 .gv-tc-r{font-size:13px;color:#5F5870}
 .gv-tc-wrap{grid-column:1/-1;width:100%;display:block}

@@ -477,7 +477,11 @@
     { id: 'lat', nome: 'Latência acima de 100 ms', campo: 'latência medida', acao: 'Verificar o link e o caminho até a operadora.',
       tem: function (v) { return ok((v.wifi || {}).mediaPing); }, tag: 'DESEMPENHO', chave: 'latência' },
     { id: 'dl', nome: 'Download de 80 Mbps ou menos', campo: 'download medido', acao: 'Rever a banda e o desempenho da rede.',
-      tem: function (v) { var d = (v.wifi || {}).mediaDownload; return ok(d) && d > 0; }, tag: 'DESEMPENHO', chave: 'Mbps' }
+      tem: function (v) { var d = (v.wifi || {}).mediaDownload; return ok(d) && d > 0; }, tag: 'DESEMPENHO', chave: 'Mbps' },
+    // Teste de carga (app 1.2.0): conta direto do resultado que veio do app, sem passar pelas sugestões; fica fora do "maior ofensor" da visão executiva.
+    { id: 'carga', nome: 'Teste de carga Regular ou Ruim', campo: 'teste de carga', acao: 'Redimensionar os canais dos access points.', soMelhorias: true,
+      tem: function (v) { var t = v.testeCarga; return !!(t && t.resultado); },
+      conta: function (v) { var x = (v.testeCarga || {}).resultado; return x === 'Regular' || x === 'Ruim'; } }
   ];
   function corrigeLinks(v) {
     return Object.assign({}, v, { links: (v.links || []).map(function (l) { return Object.assign({}, l, { mbps: mbpsLink(l) }); }) });
@@ -486,7 +490,8 @@
   // Ordem: a que atinge a maior proporção das escolas com o dado registrado; desempate por volume.
   var GENERICO = {
     dl: 'A banda por sala fica pequena para o número de acessos simultâneos. O resultado é lentidão e travamentos nas máquinas virtuais.',
-    lat: 'Latência alta deixa a sessão remota lenta e instável para quem está usando.'
+    lat: 'Latência alta deixa a sessão remota lenta e instável para quem está usando.',
+    carga: 'Com a sala cheia, a rede não segurou o uso ao mesmo tempo. No VDI isso vira travamento justamente na aula.'
   };
   function melhorias(linhas) {
     var cont = OFENSORES.map(function (o) { return { o: o, qtd: 0, de: 0, escolas: [], porque: '' }; });
@@ -495,18 +500,20 @@
       cont.forEach(function (c) {
         var o = c.o; if (!o.tem(v)) return;
         c.de++;
+        if (o.conta) { if (o.conta(v)) { c.qtd++; c.escolas.push(l); c.porque = GENERICO[o.id]; } return; }
         var risco = g.riscos.filter(function (r) { return r.tag === o.tag && (!o.chave || r.t.indexOf(o.chave) >= 0); })[0];
         if (risco) { c.qtd++; c.escolas.push(l); if (!c.porque) c.porque = (GENERICO[o.id] || risco.t); }
       });
     });
     var lista = cont.filter(function (c) { return c.qtd > 0 && c.de > 0; }).sort(function (a, b) { return (b.qtd / b.de) - (a.qtd / a.de) || b.qtd - a.qtd; });
     return lista.map(function (c) {
+      c.so = !!c.o.soMelhorias;
       c.escolas.sort(function (a, b) { return (a.nota == null ? 101 : a.nota) - (b.nota == null ? 101 : b.nota); });
-      return { id: c.o.id, nome: c.o.nome, campo: c.o.campo, acao: c.o.acao, porque: c.porque, qtd: c.qtd, de: c.de, sem: linhas.length - c.de, total: linhas.length, escolas: c.escolas };
+      return { id: c.o.id, nome: c.o.nome, campo: c.o.campo, acao: c.o.acao, porque: c.porque, qtd: c.qtd, de: c.de, sem: linhas.length - c.de, total: linhas.length, escolas: c.escolas, soMelhorias: c.so };
     });
   }
   function maiorOfensor(linhas) {
-    var lista = melhorias(linhas);
+    var lista = melhorias(linhas).filter(function (c) { return !c.soMelhorias; });
     if (!lista.length) return null;
     var t = lista[0];
     return { id: t.id, nome: t.nome, campo: t.campo, acao: t.acao, qtd: t.qtd, de: t.de, sem: t.sem, total: t.total, escolas: t.escolas, segundo: lista[1] ? lista[1].nome : null };

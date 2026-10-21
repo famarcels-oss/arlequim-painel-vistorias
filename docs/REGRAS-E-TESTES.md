@@ -69,11 +69,15 @@ A cada entrega, o `dist/painel-vistorias.html` novo é gravado por cima desse ar
 1. **O painel só lê.** Não apaga, não corrige, não grava nada na vistoria carregada.
 2. **O painel não calcula nota nem faixa.** Nota, nota Wi-Fi, nota da rede física e status vêm do `calculado` do app. A faixa vem do status do app. Única exceção, já existente: planilha antiga `.csv` sem a coluna `Score_Geral_Unificado`, onde o painel reproduz a mesma regra do app para não perder o histórico.
 3. **Arquivos protegidos:** `normalizar.js`, `dados.js`, `regras.js`, `pasta.js` e `scripts/compilar-antigos.js`. Não mudam sem decisão do Fábio. Se mudarem com autorização, atualizar `docs/protegidos.sha256` na mesma entrega, com a justificativa escrita.
+
+   Mudanças autorizadas:
+   - **1.5.7 (21/10/2026):** `normalizar.js` passa a ler os campos do app 1.2.0 (rede por ponto, jitter da rede cabeada, desconto e edição do teste de carga, data do pacote). `dados.js` guarda a nota anterior do mesmo uuid na série da escola. Leitura das vistorias antigas sem mudança nos campos que já existiam.
 4. **O histórico não se perde.** Medição antiga continua na série da escola.
 5. **O que falta continua faltando.** Campo ausente aparece como "Não registrado". Nunca vira zero, nunca entra em média.
 6. **Funciona offline.** Arquivo único, JavaScript puro, sem servidor, sem chamada externa. "Exportar painel em HTML" e "Exportar escola em HTML" continuam funcionando.
 7. **Anexo não some.** Tudo que o `vistoria.json` lista em `espectro`, `fotos` e `arquivos.pdf` tem que aparecer no painel e sobreviver à exportação.
-8. **Informativo é informativo.** Teste de carga não entra na nota nem na faixa.
+8. **O teste de carga desconta, mas não pelo painel.** A partir do app 1.2.0, Regular e Ruim descontam da nota Wi-Fi. A nota já chega com o desconto em `calculado`, e o painel nunca soma nem subtrai. A rede por ponto (TX negociada, canal, redes no canal, DNS e TCP/443 até o VDI) e o assessment são informativos: não entram na nota, na faixa nem nas contagens.
+9. **Mesmo uuid, nota diferente.** Vale a versão editada por último (empate: a do pacote gerado por último). A outra não some: fica na série da escola como medição anterior.
 
 ---
 
@@ -133,7 +137,11 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - Faixas, rótulos e textos das telas de gestão.
 - Apta com ressalva: só no caso certo.
 - Severas restrições: o rótulo antigo não sobrou em nenhuma tela.
-- Teste de carga: lê o campo, mostra na aba Pontos Wi-Fi, e não mexe na nota.
+- Teste de carga: lê o campo, mostra na aba Pontos Wi-Fi, e o painel não altera a nota que veio do app.
+- App 1.2.0: rede por ponto dentro do cartão (ao passar o mouse), jitter da cabeada (0 continua "Não registrado"), "(editado)" no teste de carga, sem texto de apoio e sem linha de desconto.
+- Mesmo uuid com nota diferente: a anterior fica na série, recarregar não duplica.
+- Melhorias: "Teste de carga Regular ou Ruim" conta só escolas com teste e nunca vira o maior ofensor da visão executiva.
+- Assessment carregado fica de fora com aviso, até a aba Workload Assessment.
 - A mesma escola tem a mesma classificação em todas as telas.
 - Nomes das faixas: só no dicionário, e renomear muda todas as telas.
 - Código limpo: sem `console.log`, `debugger`, TODO, e sem classe CSS órfã.

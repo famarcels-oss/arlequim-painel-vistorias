@@ -249,13 +249,29 @@
   function jnum(x) { return (typeof x === 'number' && isFinite(x)) ? x : null; }
   function jstr(x) { return (x === null || x === undefined || x === '' || String(x).toLowerCase() === 'selecione') ? null : String(x); }
 
-  // Teste de carga (app 1.1.40): só leitura do campo, null quando não há teste. Não entra na nota.
+  // Teste de carga (app 1.1.40): só leitura do campo, null quando não há teste.
+  // A partir do app 1.2.0, Regular e Ruim descontam da nota Wi-Fi; a nota já chega descontada em "calculado" e o painel não recalcula.
   function lerTesteCarga(t) {
     if (!t || typeof t !== 'object') return null;
     return {
       usuarios: jnum(t.usuarios), download: jnum(t.download), upload: jnum(t.upload), ping: jnum(t.ping), jitter: jnum(t.jitter), sinalDbm: jnum(t.sinalDbm),
-      ssid: jstr(t.ssid), banda: jstr(t.banda), dataMedicao: jnum(t.dataMedicao), resultado: jstr(t.resultado), motivo: jstr(t.motivo)
+      ssid: jstr(t.ssid), banda: jstr(t.banda), dataMedicao: jnum(t.dataMedicao), resultado: jstr(t.resultado), motivo: jstr(t.motivo),
+      descontoNotaWifi: jnum(t.descontoNotaWifi), editado: t.editadoManual === true
     };
+  }
+
+  // Rede e caminho até o VDI por ponto (app 1.2.0): só leitura, informativo. Campo ausente fica null ("Não registrado").
+  function lerRedePonto(p) {
+    var d = (p.diagnosticoVdi && typeof p.diagnosticoVdi === 'object') ? p.diagnosticoVdi : {};
+    var r = {
+      txNegociadaMbps: jnum(p.txNegociadaMbps),
+      canal: jnum(p.canal) != null ? jnum(p.canal) : jnum(d.canal),
+      larguraMhz: jnum(p.larguraMhz) != null ? jnum(p.larguraMhz) : jnum(d.larguraMhz),
+      redesNoCanal: jnum(p.redesNoCanal), redesNoCanalFortes: jnum(p.redesNoCanalFortes),
+      dnsMs: jnum(d.dnsMs), tcp443Ms: jnum(d.tcp443Ms), destino: jstr(d.destino) || jstr(d.host) || jstr(d.alvo)
+    };
+    var tem = Object.keys(r).some(function (k) { return r[k] != null; });
+    return tem ? r : null;
   }
 
   function normalizarJson(j, pastaNoZip, origemNome) {
@@ -269,13 +285,13 @@
       return {
         indice: p.indice || (i + 1), nome: jstr(p.nome) || ('Ponto ' + (i + 1)), download: jnum(p.download), upload: jnum(p.upload) > 0 ? jnum(p.upload) : null,
         ping: jnum(p.ping), jitter: jnum(p.jitter), ssid: jstr(p.ssid), banda: jstr(p.banda), sinalDbm: jnum(p.sinalDbm), capacidade: jstr(p.capacidade),
-        manual: typeof p.manual === 'boolean' ? p.manual : null
+        manual: typeof p.manual === 'boolean' ? p.manual : null, rede: lerRedePonto(p)
       };
     });
     var redes = (cb.redes || []).map(function (r) {
       return {
         nome: jstr(r.nome) || 'Rede cabeada', sistemaOperacional: jstr(r.sistemaOperacional), switch: jstr(r.switch), cabeamento: jstr(r.cabeamento),
-        desktops: jnum(r.desktops), download: jnum(r.download), ping: jnum(r.ping), jitter: null,
+        desktops: jnum(r.desktops), download: jnum(r.download), ping: jnum(r.ping), jitter: jnum(r.jitter) > 0 ? jnum(r.jitter) : null,
         fotos: { laboratorio: jstr(r.fotoLaboratorio), teste: jstr(r.fotoTesteInternet), switch: jstr(r.fotoSwitch), extra: jstr(r.fotoExtra) }
       };
     });
@@ -357,6 +373,7 @@
           var pasta = n.slice(0, n.length - 'vistoria.json'.length);
           var v = normalizarJson(j, pasta, nomeOrigem);
           v.zipRef = zip;
+          if (res.manifest && jnum(res.manifest.geradoEm) != null) v.pacoteGeradoEm = res.manifest.geradoEm;
           res.vistorias.push(v);
         } catch (e) { res.avisos.push('Vistoria ilegível em ' + n + ': ' + e.message); res.ignorados++; }
       } else if (/\.csv$/i.test(n) && !/vistorias_longo\.csv$/i.test(n)) {

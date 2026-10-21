@@ -1,6 +1,6 @@
 {
   "name": "arlequim-painel-vistorias",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "private": true,
   "description": "Painel de Vistorias Arlequim: estático, roda no navegador, sem backend e sem credenciais.",
   "scripts": {

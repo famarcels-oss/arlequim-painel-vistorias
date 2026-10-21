@@ -8,6 +8,7 @@ Como o painel lê o que o app grava. Vale para quem mexe no código.
 - Escola sem nota fica fora da Prontidão para VDI, como "Sem nota".
 - Coluna que nenhuma escola preencheu fica escondida até a primeira vistoria completa chegar.
 - Vistoria completa de uma escola substitui a antiga (mesmo `uuid` ou mesma escola).
+- Mesmo `uuid` com nota diferente: vale a editada por último e a outra fica na série da escola.
 - Não há selo de "dado parcial" na tela.
 
 ## Como o app mede

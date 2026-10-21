@@ -263,7 +263,11 @@
           L.planilhas++;
         } else if (ext === 'json') {
           var j = JSON.parse(await f.text());
-          if (!j.identificacao || !j.local) { L.ignorados++; f.__ign = true; L.nomesIgnorados.push(nome); continue; }
+          if (!j.identificacao || !j.local) {
+            L.ignorados++; f.__ign = true; L.nomesIgnorados.push(nome);
+            if (j.assessment || j.workloads) L.avisos.push(nome + ': assessment do app. A aba Workload Assessment chega na próxima versão do painel; por enquanto o arquivo fica de fora.');
+            continue;
+          }
           lista = [N.normalizarJson(j, null, nome)]; L.jsons++;
         } else { L.ignorados++; f.__ign = true; L.nomesIgnorados.push(nome); continue; }
         r = banco.adicionar(lista, pid);

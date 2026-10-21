@@ -352,7 +352,7 @@ test('Melhorias 1.2.1: aba renomeada, tipos somados e filtro leva à escola', ()
   assert.match(A, /ACOES\.gMelhoria/);
 });
 
-test('Teste de carga 1.3.0: lê o campo do pacote, mostra na ficha, não mexe na nota, sem Plano de ação', () => {
+test('Teste de carga 1.3.0: lê o campo do pacote, mostra na ficha, o painel não altera a nota que veio do app, sem Plano de ação', () => {
   const j = { identificacao: { uuid: 'u-tc', dataVistoria: 1760000000000, schemaVersion: 26 }, local: { escola: 'Escola TC', projeto: 'P1' },
     testeCarga: { usuarios: 30, download: 42.5, upload: 38.1, ping: 18, jitter: 4.2, sinalDbm: -61, ssid: 'Escola_Wifi', banda: '5 GHz', dataMedicao: 1760000000000, resultado: 'Bom', motivo: 'Dentro do esperado.' } };
   const v = N.normalizarJson(j, 'p/', 'x.zip');
@@ -372,6 +372,81 @@ test('Teste de carga 1.3.0: lê o campo do pacote, mostra na ficha, não mexe na
   C.escolas[0].ultima.testeCarga = Object.assign({}, v.testeCarga, { sinalDbm: 0, upload: null, resultado: 'Ruim' });
   html = VG.viewFicha(C);
   assert.ok(html.includes('Ruim') && html.includes('Não registrado') && html.includes('Ignorado no resultado'));
+});
+
+test('1.5.7 leitura do app 1.2.0: rede por ponto, jitter da cabeada e desconto do teste de carga', () => {
+  const j = { identificacao: { uuid: 'u-120', dataVistoria: 1792000000000, schemaVersion: 26 }, local: { escola: 'Escola 120', projeto: 'P1' },
+    wifi: { medido: true, pontos: [
+      { nome: 'Sala 1', download: 90, ping: 20, jitter: 3, txNegociadaMbps: 433, redesNoCanal: 3, redesNoCanalFortes: 1, diagnosticoVdi: { dnsMs: 24, tcp443Ms: 31, canal: 36, larguraMhz: 80, destino: 'vdi.exemplo.gov.br' } },
+      { nome: 'Sala 2', download: 80, ping: 25, jitter: 4, diagnosticoVdi: null }] },
+    cabeada: { possui: true, redes: [{ nome: 'Lab', download: 68, ping: 35.5, jitter: 86 }, { nome: 'Sec', download: 92, ping: 7, jitter: 0 }] },
+    testeCarga: { usuarios: 22, download: 55.5, resultado: 'Regular', motivo: 'Regular por: jitter 19.2 ms.', descontoNotaWifi: 5, editadoManual: true },
+    calculado: { nota: 87, faixa: 'APROVADA', notaWifi: 87 } };
+  const v = N.normalizarJson(j, 'p/', 'x.zip');
+  assert.deepStrictEqual(v.wifi.pontos[0].rede, { txNegociadaMbps: 433, canal: 36, larguraMhz: 80, redesNoCanal: 3, redesNoCanalFortes: 1, dnsMs: 24, tcp443Ms: 31, destino: 'vdi.exemplo.gov.br' });
+  assert.strictEqual(v.wifi.pontos[1].rede, null, 'ponto sem dado novo não inventa nada');
+  assert.strictEqual(v.cabeada.redes[0].jitter, 86, 'jitter medido da cabeada agora é lido');
+  assert.strictEqual(v.cabeada.redes[1].jitter, null, 'jitter zerado continua Não registrado');
+  assert.strictEqual(v.testeCarga.descontoNotaWifi, 5); assert.strictEqual(v.testeCarga.editado, true);
+  assert.strictEqual(v.calculado.nota, 87, 'o painel não desconta de novo: a nota é a do app');
+  assert.strictEqual(v.calculado.notaWifi, 87);
+});
+
+test('1.5.7 ficha: dados novos dentro do cartão do ponto, teste de carga sem texto de apoio e sem linha de desconto', () => {
+  const b = banco([mk({ escola: 'A', nota: 70 })]);
+  const C = contexto(b, estado({ view: 'ficha', projeto: 'P1' })); C.S.ficha = C.escolas[0].chave; C.S.aba = 'pontos';
+  let html = VG.viewFicha(C);
+  assert.ok(!html.includes('TX negociada') && !html.includes('Destino do VDI'), 'vistoria antiga: cartão igual ao de antes');
+  const u = C.escolas[0].ultima;
+  u.wifi.pontos = [{ nome: 'S1', download: 90, ping: 20, jitter: 5, rede: { txNegociadaMbps: 433, canal: 36, larguraMhz: 80, redesNoCanal: 3, redesNoCanalFortes: 1, dnsMs: 24, tcp443Ms: 31, destino: 'vdi.exemplo.gov.br' } },
+    { nome: 'S2', download: 80, ping: 20, jitter: 5, rede: null }];
+  u.testeCarga = { usuarios: 22, download: 55.5, resultado: 'Regular', motivo: 'Regular por: jitter 19.2 ms.', descontoNotaWifi: 5, editado: true };
+  html = VG.viewFicha(C);
+  ['TX negociada', '433 Mbps', 'Canal e largura', '36, 80 MHz', '3 (1 forte)', 'DNS até o VDI', '24 ms', 'TCP/443 até o VDI', '31 ms', 'vdi.exemplo.gov.br'].forEach((t) => assert.ok(html.includes(t), t));
+  const cartoes = html.split('class="pt-card');
+  assert.ok(cartoes[2].includes('TX negociada') && cartoes[2].includes('Não registrado'), 'ponto sem o dado mostra Não registrado');
+  assert.ok(cartoes[1].indexOf('Suporta') < cartoes[1].indexOf('TX negociada') && cartoes[1].indexOf('Destino do VDI') < cartoes[1].indexOf('Medição manual'), 'linhas novas logo depois de Suporta');
+  assert.ok(html.includes('(editado)'));
+  assert.ok(!html.includes('Informativo: não entra na nota nem na faixa') && !html.includes('Desconto na nota'), 'sem texto de apoio e sem linha de desconto');
+});
+
+test('1.5.7 mesmo uuid com nota diferente: vale a mais recente e a anterior fica na série', () => {
+  const b = D.criar();
+  const v1 = Object.assign(mk({ chave: 'uu', escola: 'Escola U', nota: 80 }), { atualizadoEm: 100, pacoteGeradoEm: 1 });
+  const v2 = Object.assign(mk({ chave: 'uu', escola: 'Escola U', nota: 72 }), { atualizadoEm: 200, pacoteGeradoEm: 2 });
+  b.adicionar([v1], 'p1'); const r = b.adicionar([v2], 'p2');
+  assert.strictEqual(r.atualizadas, 1);
+  let e = b.escolas()[0];
+  assert.strictEqual(e.ultima.calculado.nota, 72); assert.deepStrictEqual(e.serie.map((x) => x.calculado.nota), [80, 72]);
+  b.adicionar([Object.assign({}, v1)], 'p3'); b.adicionar([Object.assign({}, v2)], 'p4');
+  e = b.escolas()[0];
+  assert.deepStrictEqual(e.serie.map((x) => x.calculado.nota), [80, 72], 'recarregar não duplica');
+  const b2 = D.criar(); b2.adicionar([v1], 'p1');
+  const r2 = b2.adicionar([Object.assign({}, v1, { pacoteGeradoEm: 9 })], 'p9');
+  assert.strictEqual(r2.duplicadas, 1, 'mesma nota e mesma edição: duplicata, como antes');
+  assert.strictEqual(b2.total(), 1);
+  const b3 = D.criar(); b3.adicionar([v1], 'p1');
+  b3.adicionar([Object.assign(mk({ chave: 'uu', escola: 'Escola U', nota: 75 }), { atualizadoEm: 100, pacoteGeradoEm: 5 })], 'p5');
+  assert.strictEqual(b3.escolas()[0].ultima.calculado.nota, 75, 'empate na edição com nota diferente: vale o pacote gerado por último');
+});
+
+test('1.5.7 Melhorias: teste de carga Regular ou Ruim entra como tipo novo, fora da visão executiva', () => {
+  const tc = (r) => ({ resultado: r, usuarios: 20 });
+  const lista = [mk({ escola: 'A', nota: 85 }), mk({ escola: 'B', nota: 85 }), mk({ escola: 'C', nota: 85 }), mk({ escola: 'D', nota: 85 })];
+  lista[0].testeCarga = tc('Regular'); lista[1].testeCarga = tc('Ruim'); lista[2].testeCarga = tc('Bom');
+  const L = G.linhasDe(banco(lista).escolas());
+  const c = G.melhorias(L).filter((x) => x.id === 'carga')[0];
+  assert.ok(c); assert.strictEqual(c.nome, 'Teste de carga Regular ou Ruim'); assert.strictEqual(c.acao, 'Redimensionar os canais dos access points.');
+  assert.strictEqual(c.qtd, 2); assert.strictEqual(c.de, 3, 'escola sem teste fica fora da conta');
+  const o = G.maiorOfensor(L); assert.ok(!o || o.id !== 'carga', 'visão executiva não muda');
+  const C = contexto(banco(lista), estado({ view: 'projeto', projeto: 'P1', gAba: 'melhorias' }));
+  assert.ok(VG.viewProjetoG(C).includes('Teste de carga Regular ou Ruim'));
+});
+
+test('1.5.7 assessment carregado no painel fica de fora com aviso, nunca vira vistoria', () => {
+  const A = fs.readFileSync(path.join(raiz, 'public/assets/js/app.js'), 'utf8');
+  assert.match(A, /j\.assessment \|\| j\.workloads/);
+  assert.match(A, /A aba Workload Assessment chega na próxima versão do painel/);
 });
 
 test('Apta com ressalva 1.5.0: só quando o app diz apta e uma das duas partes veio com ressalva', () => {

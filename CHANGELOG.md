@@ -3,6 +3,15 @@
 Cada entrega sobe um número e vira uma tag no GitHub (`v1.5.6`, `v1.5.5`...).
 Para ver o código de qualquer versão: `git checkout vX.Y.Z`.
 
+## 1.5.7
+- Leitura do app 1.2.0. No cartão de cada ponto Wi-Fi, ao passar o mouse: TX negociada, canal e largura, redes no canal, DNS e TCP/443 até o VDI e destino do VDI. Vistoria anterior à 1.2.0 fica igual.
+- Rede cabeada: o jitter medido aparece (antes era sempre "Não registrado"). Jitter 0 continua "Não registrado".
+- Teste de carga: "(editado)" quando o técnico editou depois de medir; sai o texto "Informativo: não entra na nota nem na faixa", que deixou de valer.
+- Melhorias: tipo novo "Teste de carga Regular ou Ruim", com a ação "Redimensionar os canais dos access points". A visão executiva não muda.
+- Mesmo uuid com nota diferente: vale a mais recente e a anterior fica na série da escola.
+- Assessment carregado fica de fora com aviso, até a aba Workload Assessment (1.5.8).
+- Arquivos protegidos alterados com autorização: `normalizar.js` e `dados.js`.
+
 ## 1.5.6
 - Documentação de produto: README novo, imagens de todas as telas (com dados fictícios), este histórico de versões e o passo a passo para sair uma versão.
 - Documentos reorganizados: regras dos dados num arquivo só, com os nomes atuais das faixas.
