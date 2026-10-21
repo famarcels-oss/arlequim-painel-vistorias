@@ -3,6 +3,10 @@
 Cada entrega sobe um número e vira uma tag no GitHub (`v1.5.6`, `v1.5.5`...).
 Para ver o código de qualquer versão: `git checkout vX.Y.Z`.
 
+## 1.5.8
+- Medição anterior aberta pelo histórico da escola: PDF, fotos e prints voltam a abrir. Quando o pacote dessa medição não traz o anexo (pacote de correção só com o `vistoria.json`), o painel usa o da outra versão da mesma vistoria.
+- Cartão do ponto Wi-Fi: cada linha nova (TX negociada, canal, redes no canal, DNS, TCP/443, destino do VDI) só aparece quando o ponto trouxe aquele dado.
+
 ## 1.5.7
 - Leitura do app 1.2.0. No cartão de cada ponto Wi-Fi, ao passar o mouse: TX negociada, canal e largura, redes no canal, DNS e TCP/443 até o VDI e destino do VDI. Vistoria anterior à 1.2.0 fica igual.
 - Rede cabeada: o jitter medido aparece (antes era sempre "Não registrado"). Jitter 0 continua "Não registrado".

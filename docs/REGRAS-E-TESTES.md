@@ -138,8 +138,8 @@ node scripts/build-single.js               # 3. arquivo único reconstruído
 - Apta com ressalva: só no caso certo.
 - Severas restrições: o rótulo antigo não sobrou em nenhuma tela.
 - Teste de carga: lê o campo, mostra na aba Pontos Wi-Fi, e o painel não altera a nota que veio do app.
-- App 1.2.0: rede por ponto dentro do cartão (ao passar o mouse), jitter da cabeada (0 continua "Não registrado"), "(editado)" no teste de carga, sem texto de apoio e sem linha de desconto.
-- Mesmo uuid com nota diferente: a anterior fica na série, recarregar não duplica.
+- App 1.2.0: rede por ponto dentro do cartão (ao passar o mouse, cada linha só com dado), jitter da cabeada (0 continua "Não registrado"), "(editado)" no teste de carga, sem texto de apoio e sem linha de desconto.
+- Mesmo uuid com nota diferente: a anterior fica na série, recarregar não duplica, e o anexo que faltar no pacote dela vem da outra versão.
 - Melhorias: "Teste de carga Regular ou Ruim" conta só escolas com teste e nunca vira o maior ofensor da visão executiva.
 - Assessment carregado fica de fora com aviso, até a aba Workload Assessment.
 - A mesma escola tem a mesma classificação em todas as telas.

@@ -404,7 +404,10 @@ test('1.5.7 ficha: dados novos dentro do cartão do ponto, teste de carga sem te
   html = VG.viewFicha(C);
   ['TX negociada', '433 Mbps', 'Canal e largura', '36, 80 MHz', '3 (1 forte)', 'DNS até o VDI', '24 ms', 'TCP/443 até o VDI', '31 ms', 'vdi.exemplo.gov.br'].forEach((t) => assert.ok(html.includes(t), t));
   const cartoes = html.split('class="pt-card');
-  assert.ok(cartoes[2].includes('TX negociada') && cartoes[2].includes('Não registrado'), 'ponto sem o dado mostra Não registrado');
+  assert.ok(!cartoes[2].includes('TX negociada') && !cartoes[2].includes('Destino do VDI'), '1.5.8: ponto sem o dado não mostra a linha');
+  u.wifi.pontos[1].rede = { txNegociadaMbps: 144, canal: null, larguraMhz: null, redesNoCanal: null, redesNoCanalFortes: null, dnsMs: null, tcp443Ms: 45, destino: null };
+  const c2 = VG.viewFicha(C).split('class="pt-card')[2];
+  assert.ok(c2.includes('144 Mbps') && c2.includes('45 ms') && !c2.includes('Canal e largura') && !c2.includes('Redes no canal') && !c2.includes('DNS até o VDI') && !c2.includes('Destino do VDI'), '1.5.8: só as linhas com dado');
   assert.ok(cartoes[1].indexOf('Suporta') < cartoes[1].indexOf('TX negociada') && cartoes[1].indexOf('Destino do VDI') < cartoes[1].indexOf('Medição manual'), 'linhas novas logo depois de Suporta');
   assert.ok(html.includes('(editado)'));
   assert.ok(!html.includes('Informativo: não entra na nota nem na faixa') && !html.includes('Desconto na nota'), 'sem texto de apoio e sem linha de desconto');
@@ -447,6 +450,13 @@ test('1.5.7 assessment carregado no painel fica de fora com aviso, nunca vira vi
   const A = fs.readFileSync(path.join(raiz, 'public/assets/js/app.js'), 'utf8');
   assert.match(A, /j\.assessment \|\| j\.workloads/);
   assert.match(A, /A aba Workload Assessment chega na próxima versão do painel/);
+});
+
+test('1.5.8 anexo da medição anterior: se o pacote dela não tem o arquivo, procura nas outras versões da mesma vistoria', () => {
+  const A = fs.readFileSync(path.join(raiz, 'public/assets/js/app.js'), 'utf8');
+  const corpo = A.slice(A.indexOf('async function blobDe'), A.indexOf('async function urlArquivo'));
+  assert.match(corpo, /x\.uuid === v\.uuid/);
+  assert.match(corpo, /o\.zipRef && o\.zipRef\.file/);
 });
 
 test('Apta com ressalva 1.5.0: só quando o app diz apta e uma das duas partes veio com ressalva', () => {

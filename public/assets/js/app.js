@@ -40,8 +40,11 @@
 
   async function blobDe(v, rel) {
     if (v.embut && v.embut[rel]) return (await fetch(v.embut[rel])).blob();
-    if (v.zipRef) {
-      var f = v.zipRef.file((v.arquivos.base || '') + rel);
+    // anexo procurado no pacote da própria versão e, se faltar (pacote de correção só com o vistoria.json), nas outras versões da mesma vistoria (mesmo uuid)
+    var fontes = [v].concat(v.uuid ? banco.todas().filter(function (x) { return x !== v && x.uuid === v.uuid; }) : []);
+    for (var i = 0; i < fontes.length; i++) {
+      var o = fontes[i];
+      var f = o.zipRef && o.zipRef.file((o.arquivos.base || '') + rel);
       if (f) return new Blob([await f.async('arraybuffer')], { type: mime(rel) });
     }
     return null;

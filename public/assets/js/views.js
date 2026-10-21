@@ -39,7 +39,7 @@
   function q(k) { return 'q-' + (k || 'n'); }
 
   // Versão do painel: única fonte; o selo discreto aparece na faixa de todas as telas (tem de bater com o package.json)
-  var VERSAO = '1.5.7';
+  var VERSAO = '1.5.8';
   function selo(claro) { return '<span class="gv-ver' + (claro ? ' cl' : '') + '" title="Versão do painel">v' + VERSAO + '</span>'; }
 
   // Nome da faixa: vem do dicionário de gestao.js (carregado depois deste arquivo, por isso lido na hora)
@@ -369,17 +369,20 @@
       '</div>' + (t.motivo ? '<div class="gv-tc-m">' + esc(t.motivo) + '</div>' : '') + (rod ? '<div class="gv-tc-r">' + rod + '</div>' : '') + '</div></div>';
   }
 
-  // Rede e caminho até o VDI (app 1.2.0): linhas extras do cartão, só quando a vistoria trouxe algum desses dados.
+  // Rede e caminho até o VDI (app 1.2.0): linhas extras do cartão. Cada linha só aparece quando o ponto trouxe aquele dado.
   function linhasRede(p) {
-    var r = p.rede || {}, ms = function (x) { return ok(x) ? tcNum(x) + ' ms' : nr(); };
-    var canal = ok(r.canal) ? r.canal + (ok(r.larguraMhz) ? ', ' + r.larguraMhz + ' MHz' : '') : (ok(r.larguraMhz) ? r.larguraMhz + ' MHz' : nr());
-    var redes = ok(r.redesNoCanal) ? r.redesNoCanal + (ok(r.redesNoCanalFortes) ? ' (' + (r.redesNoCanalFortes === 0 ? 'nenhuma forte' : r.redesNoCanalFortes + (r.redesNoCanalFortes === 1 ? ' forte' : ' fortes')) + ')' : '') : nr();
-    return linhaExtra('TX negociada', ok(r.txNegociadaMbps) ? tcNum(r.txNegociadaMbps) + ' Mbps' : nr()) + linhaExtra('Canal e largura', canal) + linhaExtra('Redes no canal', redes) +
-      linhaExtra('DNS até o VDI', ms(r.dnsMs)) + linhaExtra('TCP/443 até o VDI', ms(r.tcp443Ms)) + linhaExtra('Destino do VDI', r.destino ? esc(r.destino) : nr());
+    var r = p.rede || {}, h = '', lin = function (k, val) { if (val != null) h += linhaExtra(k, val); };
+    lin('TX negociada', ok(r.txNegociadaMbps) ? tcNum(r.txNegociadaMbps) + ' Mbps' : null);
+    lin('Canal e largura', ok(r.canal) ? r.canal + (ok(r.larguraMhz) ? ', ' + r.larguraMhz + ' MHz' : '') : (ok(r.larguraMhz) ? r.larguraMhz + ' MHz' : null));
+    lin('Redes no canal', ok(r.redesNoCanal) ? r.redesNoCanal + (ok(r.redesNoCanalFortes) ? ' (' + (r.redesNoCanalFortes === 0 ? 'nenhuma forte' : r.redesNoCanalFortes + (r.redesNoCanalFortes === 1 ? ' forte' : ' fortes')) + ')' : '') : null);
+    lin('DNS até o VDI', ok(r.dnsMs) ? tcNum(r.dnsMs) + ' ms' : null);
+    lin('TCP/443 até o VDI', ok(r.tcp443Ms) ? tcNum(r.tcp443Ms) + ' ms' : null);
+    lin('Destino do VDI', r.destino ? esc(r.destino) : null);
+    return h;
   }
 
   function tabPontos(C, e, v) {
-    var pts = v.wifi.pontos, comRede = pts.some(function (p) { return !!p.rede; });
+    var pts = v.wifi.pontos;
     if (!pts.length) return '<div class="dash-box">' + (v.calculado.faixa === 'nm' ? 'Wi-Fi não medido nesta vistoria.' : 'Nenhum ponto de Wi-Fi registrado nesta vistoria.') + '</div>' + blocoTesteCarga(v);
     var cs = { b: 0, r: 0, f: 0, n: 0 };
     pts.forEach(function (p) { cs[R.qualidadeSinal(p.sinalDbm).k]++; });
@@ -397,7 +400,7 @@
         '<span class="pt-q">' + qd.l + '</span>' +
         '<span class="pt-extra">' + linhaExtra('Ordem do ponto', '#' + (i + 1) + ' de ' + pts.length) + linhaExtra('Banda', p.banda ? esc(p.banda) : nr()) +
         linhaExtra('Sinal', sg.k === 'n' ? nr() : '<span class="' + q(sg.k) + '-t">' + sg.l + ' (' + p.sinalDbm + ' dBm)</span>') +
-        linhaExtra('Upload', ok(p.upload) ? fmt(p.upload) + ' Mbps' : nr()) + linhaExtra('Suporta', p.capacidade ? esc(p.capacidade) : nr()) + (comRede ? linhasRede(p) : '') +
+        linhaExtra('Upload', ok(p.upload) ? fmt(p.upload) + ' Mbps' : nr()) + linhaExtra('Suporta', p.capacidade ? esc(p.capacidade) : nr()) + linhasRede(p) +
         linhaExtra('Medição manual', p.manual == null ? nr() : (p.manual ? 'Sim' : 'Não')) +
         linhaExtra('Qualidade geral', '<span class="' + q(qd.k) + '-t">' + qd.l + '</span>') + linhaExtra('Por quê', esc(qd.motivo)) + '</span>' +
         '<span class="pt-hint small muted">Passe o mouse ou toque para ver todos os dados</span></button>';
